@@ -30,6 +30,11 @@ struct ClipsView: View {
                         }
                     }.padding(30).frame(maxWidth: .infinity, alignment: .topLeading)
                 }
+                if model.page == .record {
+                    recordActions.padding(.horizontal, 30).padding(.vertical, 20)
+                        .background(ClipsStyle.canvas)
+                        .overlay(alignment: .top) { Rectangle().fill(ClipsStyle.line).frame(height: 1) }
+                }
                 if let notice = model.notice {
                     HStack(spacing: 10) {
                         if model.busy || model.phase == .finalizing || model.phase == .preparing { ProgressView().controlSize(.small) }
@@ -117,6 +122,11 @@ struct ClipsView: View {
                 inputCard("Camera", detail: "Your face, in a bubble", symbol: "video", value: $model.camera)
                 inputCard("System audio", detail: "Sound from your Mac", symbol: "speaker.wave.2", value: $model.systemAudio)
             }
+
+        }
+    }
+
+    private var recordActions: some View {
             HStack {
                 VStack(alignment: .leading, spacing: 5) {
                     Text(model.phase == .paused ? "PAUSED" : model.active ? "RECORDING" : "READY WHEN YOU ARE")
@@ -139,7 +149,6 @@ struct ClipsView: View {
                     }.buttonStyle(PrimaryButton()).disabled(!model.canRecord).keyboardShortcut("r", modifiers: [.command, .shift])
                 }
             }.padding(.top, 2)
-        }
     }
 
     private var recordCanvas: some View {
@@ -244,7 +253,7 @@ struct ClipsView: View {
                 }
                 Button("Save name") { model.saveTitle() }.buttonStyle(QuietButton()).disabled(model.busy)
             }
-            VideoPlayer(player: model.player).frame(height: 310).clipShape(RoundedRectangle(cornerRadius: 12))
+            PlayerSurface(player: model.player).frame(height: 310).clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(ClipsStyle.line))
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
@@ -323,5 +332,17 @@ struct QuietButton: ButtonStyle {
         configuration.label.font(.system(size: 11, weight: .medium)).foregroundStyle(enabled ? Color.white : ClipsStyle.muted)
             .padding(.horizontal, 13).frame(height: 36)
             .background(ClipsStyle.raised.opacity(configuration.isPressed ? 0.5 : 1), in: RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+// Reference AVPlayerView directly so the native AVKit class is linked in SwiftPM executables.
+struct PlayerSurface: NSViewRepresentable {
+    let player: AVPlayer
+    func makeNSView(context: Context) -> AVPlayerView {
+        let view = AVPlayerView(); view.controlsStyle = .inline; view.player = player
+        return view
+    }
+    func updateNSView(_ view: AVPlayerView, context: Context) {
+        if view.player !== player { view.player = player }
     }
 }

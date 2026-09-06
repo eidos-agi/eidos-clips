@@ -13,7 +13,7 @@ This is a first executable slice, not completion of M0–M5. The original milest
 
 ## Recovery contract and limits
 
-Recover / Open loads the manifest, rejects unsupported schemas, unsafe paths, symlinks and bad digests, fully decodes each committed segment, and exports a new MP4. It never overwrites the package. A process-killed recording retains the `recording` state; that label is not a success claim. Before the first committed video segment, no playable recovery is promised.
+Opening a retained clip loads the manifest, rejects unsupported schemas, unsafe paths, symlinks and bad digests, fully decodes each committed segment, and exports a new MP4. It never overwrites the package. A process-killed recording retains the `recording` state; that label is not a success claim. Before the first committed video segment, no playable recovery is promised.
 
 Incomplete or orphan segments are retained but not automatically salvaged. A corrupt manifest or committed segment blocks export rather than silently omitting damaged material. There is no journal reconstruction yet. Two seconds is the segment target, **not a proven maximum loss bound**: queue delays, writer finalization, storage failure, and sparse/missing inputs can change retained bounds. Sudden power loss is untested. Segmentation is provisional; the planned fragmented-versus-segmented comparison is still open.
 
@@ -32,7 +32,7 @@ CI uploads the app only after these checks succeed. `foundation-evidence.json` a
 
 ## Scope decisions and open work
 
-The first bundle uses SwiftPM plus a packaging script instead of an Xcode app project. Xcode can open the package for debugging, but oldest-OS launch validation remain open; the company signing identity is documented in [SIGNING.md](SIGNING.md), and its execution requires the signing Mac. No upstream source, artwork, or binary was copied; this is a new implementation informed by the Not Loom review.
+The first bundle uses SwiftPM plus a packaging script instead of an Xcode app project. Xcode can open the package for debugging, but oldest-OS launch validation remains open; the company signing identity is documented in [SIGNING.md](SIGNING.md), and its execution requires the signing Mac. No upstream source, artwork, or binary was copied; this is a new implementation informed by the Not Loom review.
 
 Camera composition currently relies on an included floating camera window while the rest of the app is excluded from display capture. This is an explicit provisional departure from the planned single scene renderer. It must be checked for occlusion, spaces/fullscreen, mixed DPI, and exactly-once inclusion before being relied on. Window/region capture is unavailable. The camera and microphone use default devices; their switches apply before recording. There are no live mute controls, audio meters, global shortcuts, echo processing, saved presets, trash, background export queue, handoff jobs, or local agent control yet. `clips-probe` is a test tool, not the planned user CLI.
 
