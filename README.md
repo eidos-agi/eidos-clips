@@ -25,6 +25,8 @@ For an installable company release, use a clean checkout on the Eidos signing Ma
 bash scripts/release-app.sh
 ```
 
+Local Mac agents: follow the [build, signing, and verification handoff](docs/LOCAL-AGENT.md) for the exact checkout procedure, artifact delivery, and remaining physical tests.
+
 The release script uses the existing **Developer ID Application: Eidos AGI LLC (Y6CQ4SWPWM)** identity and **eidos-notary** keychain profile, enables hardened runtime and camera/mic entitlements, submits to Apple, staples the accepted ticket, verifies Gatekeeper, and repacks the stapled application. It refuses an unsigned fallback and never replaces an installed app. See [signing and release](docs/SIGNING.md), grounded in Eidos's desktop build repository. The signed release still requires execution on that Mac; the Linux authoring session and ordinary CI runner do not have its private key.
 
 Choose a display, select optional inputs, then Start recording. Pause and Finish are also available in the menu bar. Your clips stay under `~/Movies/Eidos Clips/`. Click a clip to review or recover completed media. Trim exports keep the original.
