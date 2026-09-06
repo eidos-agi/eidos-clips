@@ -33,7 +33,7 @@ struct CapturePanel: View {
                 } label: { Image(systemName: "ellipsis.circle").font(.system(size: 16)) }.menuStyle(.borderlessButton).frame(width: 22)
             }
             VStack(alignment: .leading, spacing: 6) {
-                Text(model.active ? "You're recording." : "Show what you mean.")
+                Text(model.phase == .recording || model.phase == .paused ? "You're recording." : model.active ? "Get ready." : "Show what you mean.")
                     .font(.system(size: 25, weight: .semibold)).tracking(-0.6)
                 Text(model.active ? "Pause, draw, or finish from the floating controls." : "A quick recording. A clearer explanation.")
                     .font(.system(size: 12)).foregroundStyle(ClipsStyle.muted)
@@ -66,18 +66,21 @@ struct CapturePanel: View {
                 }.padding(.vertical, 14)
             }.background(ClipsStyle.surface, in: RoundedRectangle(cornerRadius: 12)).disabled(model.active || model.busy)
             if model.countdown > 0 || model.phase == .preparing {
-                HStack { Text(model.countdown > 0 ? "Starting in \(model.countdown)…" : "Preparing…").font(.title3); Spacer(); Button("Cancel") { model.cancelPreparation() }.buttonStyle(QuietButton()) }
+                HStack { Text(model.countdown > 0 ? "Starting in \(model.countdown)…" : "Preparing…").font(.title3); Spacer(); Button("Cancel") { model.cancelPreparation() }.buttonStyle(QuietButton()).keyboardShortcut(.cancelAction) }
             } else if model.active {
                 HStack {
                     Text(ClipsModel.time(model.elapsed)).font(.system(size: 24, weight: .medium, design: .monospaced))
                     Spacer()
                     Button(model.phase == .paused ? "Resume" : "Pause") { model.pause() }.buttonStyle(QuietButton())
-                    Button("Finish") { model.stop() }.buttonStyle(PrimaryButton())
+                    Button("Finish") { model.stop() }.buttonStyle(PrimaryButton()).keyboardShortcut(".", modifiers: .command)
                 }.disabled(model.phase == .preparing || model.phase == .finalizing)
             } else {
                 Button { model.start() } label: {
                     HStack { Spacer(); Image(systemName: "record.circle"); Text("Start recording"); Spacer(); Text("⌘⇧R").opacity(0.65) }
                 }.buttonStyle(PrimaryButton()).keyboardShortcut("r", modifiers: [.command, .shift]).disabled(!model.canRecord)
+            }
+            if model.busy {
+                HStack { ProgressView(value: model.jobProgress); Button("Cancel") { model.cancelJob() }.buttonStyle(QuietButton()) }
             }
             if let notice = model.notice {
                 Text(notice).font(.system(size: 11)).foregroundStyle(ClipsStyle.muted).fixedSize(horizontal: false, vertical: true).lineLimit(4)

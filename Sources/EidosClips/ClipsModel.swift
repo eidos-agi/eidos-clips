@@ -47,6 +47,7 @@ final class ClipsModel: ObservableObject {
     private var annotationEvents: [AnnotationArchive.TimedInk] = []
     let annotationArchive = AnnotationArchive()
     private var targetFrame: CGRect?
+    var quitting = false
     var configureWindow: (() -> Void)?
     @Published var page: ClipsPage = .record
     @Published var phase: CaptureState = .idle
@@ -134,7 +135,8 @@ final class ClipsModel: ObservableObject {
         capture.report = { [weak self] message in self?.notice = message }
         capture.completed = { [weak self] package in
             self?.saveAnnotations()
-            Task { @MainActor in guard let self, let clip = self.readClip(package) else { return }; self.open(clip) }
+            guard self?.quitting != true else { return }
+            Task { @MainActor in guard let self, !self.quitting, let clip = self.readClip(package) else { return }; self.open(clip) }
         }
         timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
             Task { @MainActor in
@@ -320,6 +322,7 @@ final class ClipsModel: ObservableObject {
         }
     }
     func cancelJob() { jobGate.cancel(); job?.cancel() }
+    func cancelAndWaitForJob() async { let current = job; cancelJob(); await current?.value }
     private func artifact(for package: URL) throws -> ArtifactReference {
         let store = try RecordingStore(open: package)
         return ArtifactReference(id: store.manifest.id, sha256: try RecordingStore.digest(package.appendingPathComponent(RecordingStore.manifestName)), revision: 1)
@@ -378,7 +381,8 @@ final class ClipsModel: ObservableObject {
     }
     func diagnosticReport() {
         do {
-            let sha = Bundle.main.object(forInfoDictionaryKey: "ClipsSourceCommit") as? String ?? ProcessInfo.processInfo.environment["GITHUB_SHA"] ?? "local"
+            let dirty = Bundle.main.object(forInfoDictionaryKey: "ClipsSourceDirty") as? Bool ?? false
+            let sha = dirty ? "local" : (Bundle.main.object(forInfoDictionaryKey: "ClipsSourceCommit") as? String ?? ProcessInfo.processInfo.environment["GITHUB_SHA"] ?? "local")
             let url = try DiagnosticLog.shared.createReport(sourceCommit: sha)
             NSWorkspace.shared.activateFileViewerSelecting([url]); notice = "Report saved for your local agent. No recording content is included."
         } catch { notice = error.localizedDescription }

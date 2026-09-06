@@ -27,16 +27,11 @@ struct ClipsView: View {
                 ScrollView {
                     Group {
                         switch model.page {
-                        case .record: recordPage
+                        case .record: EmptyView()
                         case .library: libraryPage
                         case .review: reviewPage
                         }
                     }.padding(24).frame(maxWidth: .infinity, alignment: .topLeading)
-                }
-                if model.page == .record {
-                    recordActions.padding(.horizontal, 24).padding(.vertical, 20)
-                        .background(ClipsStyle.canvas)
-                        .overlay(alignment: .top) { Rectangle().fill(ClipsStyle.line).frame(height: 1) }
                 }
                 if model.page == .review {
                     reviewActions.padding(.horizontal, 24).padding(.vertical, 20)
@@ -117,108 +112,6 @@ struct ClipsView: View {
             Image(systemName: "internaldrive").font(.system(size: 12)).foregroundStyle(ClipsStyle.muted)
             Text("On this Mac").font(.system(size: 11)).foregroundStyle(ClipsStyle.muted)
         }.padding(.horizontal, 24).frame(height: 64)
-    }
-
-    private var recordPage: some View {
-        VStack(alignment: .leading, spacing: 22) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(model.active ? "Make your point." : "A little show. A lot less tell.")
-                    .font(.system(size: 28, weight: .semibold)).tracking(-0.8)
-                Text(model.active ? "Take your time. You can pause whenever you need." : "Turn what's on your screen into something worth sharing.")
-                    .font(.system(size: 13)).foregroundStyle(ClipsStyle.muted)
-            }
-            recordCanvas
-            HStack(spacing: 12) {
-                inputCard("Microphone", detail: "Your voice", symbol: "mic", value: $model.microphone)
-                inputCard("Camera", detail: "Your face, in a bubble", symbol: "video", value: $model.camera)
-                inputCard("System audio", detail: "Sound from your Mac", symbol: "speaker.wave.2", value: $model.systemAudio)
-            }
-
-        }
-    }
-
-    private var recordActions: some View {
-            HStack {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(model.phase == .paused ? "PAUSED" : model.active ? "RECORDING" : "READY WHEN YOU ARE")
-                        .font(.system(size: 9, weight: .semibold)).tracking(1.5).foregroundStyle(ClipsStyle.muted)
-                    Text(model.active ? ClipsModel.time(model.elapsed) : "Your original is always kept.")
-                        .font(.system(size: model.active ? 23 : 12, weight: model.active ? .medium : .regular, design: model.active ? .monospaced : .default))
-                }
-                Spacer()
-                if model.phase == .recording || model.phase == .paused {
-                    Button { model.pause() } label: { Label(model.phase == .paused ? "Resume" : "Pause", systemImage: model.phase == .paused ? "play.fill" : "pause.fill") }
-                        .buttonStyle(QuietButton())
-                    Button { model.stop() } label: { Label("Finish recording", systemImage: "stop.fill") }
-                        .buttonStyle(PrimaryButton()).keyboardShortcut(".", modifiers: .command)
-                } else {
-                    Button { model.start() } label: {
-                        HStack(spacing: 12) {
-                            Circle().fill(.white).frame(width: 8, height: 8)
-                            Text(model.phase == .preparing ? "Getting ready…" : model.phase == .finalizing ? "Finishing…" : "Start recording")
-                        }
-                    }.buttonStyle(PrimaryButton()).disabled(!model.canRecord).keyboardShortcut("r", modifiers: [.command, .shift])
-                }
-            }.padding(.top, 2)
-    }
-
-    private var recordCanvas: some View {
-        VStack(spacing: 0) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 12).fill(LinearGradient(colors: [ClipsStyle.raised, ClipsStyle.surface], startPoint: .topLeading, endPoint: .bottomTrailing))
-                VStack(spacing: 14) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 16).fill(ClipsStyle.canvas.opacity(0.65)).frame(width: 92, height: 72)
-                        Image(systemName: model.phase == .paused ? "pause.rectangle" : "display")
-                            .font(.system(size: 38, weight: .ultraLight)).foregroundStyle(model.active ? ClipsStyle.accent : Color.white.opacity(0.75))
-                    }
-                    Text(model.active ? (model.phase == .paused ? "Take a breath." : "You're rolling.") : "Start with your screen")
-                        .font(.system(size: 17, weight: .medium))
-                    Text(model.active ? "Use the menu bar to pause or finish." : "The whole display. Just the story you want to tell.")
-                        .font(.system(size: 12)).foregroundStyle(ClipsStyle.muted)
-                }
-                VStack {
-                    HStack {
-                        Label("FULL DISPLAY", systemImage: "rectangle.on.rectangle")
-                            .font(.system(size: 8, weight: .semibold)).tracking(1).foregroundStyle(ClipsStyle.muted)
-                        Spacer()
-                        if model.active { Circle().fill(ClipsStyle.accent).frame(width: 7, height: 7) }
-                    }
-                    Spacer()
-                }.padding(20)
-            }.frame(height: 178)
-            HStack(spacing: 10) {
-                Image(systemName: "display").foregroundStyle(ClipsStyle.muted)
-                if model.displayNames.isEmpty {
-                    Button("Choose a display…") { model.chooseDisplay() }.buttonStyle(.plain)
-                } else {
-                    Picker("Display", selection: $model.displayIndex) {
-                        ForEach(model.displayNames.indices, id: \.self) { i in Text(model.displayNames[i]).tag(i) }
-                    }.labelsHidden().pickerStyle(.menu).fixedSize()
-                }
-                Spacer()
-                Text("30 fps · MP4").font(.system(size: 10)).foregroundStyle(ClipsStyle.muted)
-                Button { model.chooseDisplay() } label: { Image(systemName: "arrow.clockwise") }
-                    .buttonStyle(.plain).accessibilityLabel("Refresh displays")
-            }.font(.system(size: 12)).padding(16).disabled(!model.canRecord)
-        }.background(ClipsStyle.surface, in: RoundedRectangle(cornerRadius: 12))
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(ClipsStyle.line, lineWidth: 1))
-    }
-
-    private func inputCard(_ title: String, detail: String, symbol: String, value: Binding<Bool>) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Image(systemName: symbol).font(.system(size: 16)).foregroundStyle(value.wrappedValue ? .white : ClipsStyle.muted)
-                Spacer()
-                Toggle(title, isOn: value).labelsHidden().toggleStyle(.switch).controlSize(.mini)
-            }
-            VStack(alignment: .leading, spacing: 5) {
-                Text(title).font(.system(size: 12, weight: .medium))
-                Text(detail).font(.system(size: 10)).foregroundStyle(ClipsStyle.muted)
-            }
-        }.padding(16).frame(maxWidth: .infinity, alignment: .leading)
-            .background(ClipsStyle.surface, in: RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(ClipsStyle.line, lineWidth: 1)).disabled(!model.canRecord)
     }
 
     private var libraryPage: some View {

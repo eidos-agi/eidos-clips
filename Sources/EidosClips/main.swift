@@ -77,16 +77,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func updateStatus() {
         if model.phase != lastPhase {
             if model.phase == .recording && lastPhase == .preparing { window.orderOut(nil); hud.orderFrontRegardless() }
-            if model.phase == .idle { hud.orderOut(nil); if model.page == .record { showWindow() } }
+            if model.phase == .idle { hud.orderOut(nil); if model.page == .record && !model.quitting { showWindow() } }
             lastPhase = model.phase
         }
         statusItem.button?.title = model.phase == .recording ? "● Clips" : model.phase == .paused ? "Ⅱ Clips" : "Clips"
     }
     func applicationWillTerminate(_ notification: Notification) { shortcuts.uninstall(); model.annotationArchive.flush(); DiagnosticLog.shared.flush() }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        if model.busy { model.notice = "Wait for this export to finish, then quit."; return .terminateCancel }
+        model.quitting = true
+        if model.countdown > 0 { model.cancelPreparation() }
+        if model.busy {
+            Task { await model.cancelAndWaitForJob(); NSApp.reply(toApplicationShouldTerminate: true) }
+            return .terminateLater
+        }
         guard model.capture.state.value != .idle else { return .terminateNow }
-        if model.capture.state.value == .preparing { model.notice = "Wait for capture setup to finish, then quit."; return .terminateCancel }
+        if model.capture.state.value == .preparing { model.quitting = false; model.cancelPreparation(); model.notice = "Cancelling capture preparation. Quit again when setup returns."; return .terminateCancel }
         Task { _ = try? await model.capture.stop(interrupted: true); NSApp.reply(toApplicationShouldTerminate: true) }
         return .terminateLater
     }

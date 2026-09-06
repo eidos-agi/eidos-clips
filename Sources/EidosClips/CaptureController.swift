@@ -100,6 +100,7 @@ final class CaptureController {
     private var stopTask: Task<URL?, Error>?
     private var clock: SessionClock?
     private var pendingFailure: Error?
+    private var inputObservers: [NSObjectProtocol] = []
     var elapsed: Double { clock?.elapsed(at: SegmentedRecorder.hostTime) ?? 0 }
 
     func refreshDisplays() async throws {
@@ -172,6 +173,7 @@ final class CaptureController {
             }
             session.commitConfiguration()
             devices = session
+            observeInputs(session: session, displayID: display.displayID)
             if microphone || camera { session.startRunning() }
 
             // Clips windows, camera and annotations are intentionally included in the recording.
@@ -211,6 +213,7 @@ final class CaptureController {
             if let stream { try? await stream.stopCapture() }
             stream = nil
             sink?.stopCadence()
+            clearInputObservers()
             devices?.stopRunning(); devices = nil
             cameraWindow?.close(); cameraWindow = nil
             if let recorder { _ = try? await recorder.finish(interrupted: true) }
@@ -244,6 +247,7 @@ final class CaptureController {
             if let stream { try? await stream.stopCapture() }
             stream = nil
             sink?.stopCadence()
+            clearInputObservers()
             devices?.stopRunning(); devices = nil
             cameraWindow?.close(); cameraWindow = nil
             let package = try await writer.finish(interrupted: interrupted)
@@ -269,10 +273,33 @@ final class CaptureController {
     }
 
     private func interrupt(_ error: Error) async {
+        DiagnosticLog.shared.record(.captureFailed)
         if state.value == .preparing { pendingFailure = error; return }
         guard state.value == .recording || state.value == .paused else { return }
         _ = try? await stop(interrupted: true)
         report?("Capture interrupted: \(error.localizedDescription). Completed segments were retained.")
+    }
+
+    private func clearInputObservers() {
+        for observer in inputObservers { NotificationCenter.default.removeObserver(observer) }; inputObservers.removeAll()
+    }
+    private func observeInputs(session: AVCaptureSession, displayID: UInt32) {
+        clearInputObservers()
+        let devices = Set(session.inputs.compactMap { ($0 as? AVCaptureDeviceInput)?.device.uniqueID })
+        let geometry = CGDisplayBounds(displayID)
+        inputObservers.append(NotificationCenter.default.addObserver(forName: AVCaptureDevice.wasDisconnectedNotification, object: nil, queue: .main) { [weak self] notification in
+            guard let device = notification.object as? AVCaptureDevice, devices.contains(device.uniqueID) else { return }
+            Task { @MainActor in await self?.interrupt(ClipsError.media("A requested microphone or camera disconnected.")) }
+        })
+        for name in [AVCaptureSession.runtimeErrorNotification, AVCaptureSession.wasInterruptedNotification] {
+            inputObservers.append(NotificationCenter.default.addObserver(forName: name, object: session, queue: .main) { [weak self] _ in
+                Task { @MainActor in await self?.interrupt(ClipsError.media("A requested capture input was interrupted.")) }
+            })
+        }
+        inputObservers.append(NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
+            guard CGDisplayIsOnline(displayID) == 0 || CGDisplayBounds(displayID) != geometry else { return }
+            Task { @MainActor in await self?.interrupt(ClipsError.media("The selected display disconnected or changed its layout. Choose the recording area again.")) }
+        })
     }
 
     private func showCamera(session: AVCaptureSession, display: SCDisplay) {
