@@ -128,14 +128,17 @@ public final class SegmentedRecorder: @unchecked Sendable {
             }
             lastSpaceCheck = mapped
         }
-        // A cold encoder may need more time for its first buffer than steady-state writes.
-        // Work remains on the writer queue and ingress is still bounded.
-        let deadline = Date().addingTimeInterval(current.samples == 0 ? 0.5 : 0.15)
-        while !current.input.isReadyForMoreMediaData && current.writer.status == .writing && Date() < deadline {
+        // Wait on the writer queue, never a capture callback. Cold native encoders can
+        // take longer than a frame interval. The bounded ingress remains the load limit.
+        let deadline = DispatchTime.now().uptimeNanoseconds + 3_000_000_000
+        while !current.input.isReadyForMoreMediaData && current.writer.status == .writing &&
+                DispatchTime.now().uptimeNanoseconds < deadline {
+            ingressLock.lock(); let overloaded = overloadReported; ingressLock.unlock()
+            if overloaded { throw ClipsError.media("Capture could not keep up. Completed media was retained.") }
             Thread.sleep(forTimeInterval: 0.001)
         }
         guard current.input.isReadyForMoreMediaData else {
-            throw current.writer.error ?? ClipsError.media("The encoder could not keep up.")
+            throw current.writer.error ?? ClipsError.media("The encoder remained unavailable for 3 seconds. Completed media was retained.")
         }
         let adjusted = try retime(sample, presentation: mapped)
         guard current.input.append(adjusted) else {
