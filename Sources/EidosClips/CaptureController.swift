@@ -242,6 +242,10 @@ final class CaptureController {
     func stop(interrupted: Bool = false) async throws -> URL? {
         if let stopTask { return try await stopTask.value }
         guard let writer = recorder, state.value != .idle else { return nil }
+        if state.value == .recording {
+            let end = SegmentedRecorder.hostTime
+            try clock?.pause(at: end); writer.pause(at: end)
+        }
         try state.transition(to: .finalizing); changed?(); report?("Finishing and checking the recording…")
         let task = Task<URL?, Error> {
             if let stream { try? await stream.stopCapture() }

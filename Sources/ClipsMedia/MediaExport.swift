@@ -19,7 +19,10 @@ public enum MediaExport {
         reader.add(output)
         guard reader.startReading() else { throw reader.error ?? ClipsError.media("Could not decode media.") }
         var count = 0
-        while let buffer = output.copyNextSampleBuffer() { count += CMSampleBufferGetNumSamples(buffer) }
+        while let buffer = output.copyNextSampleBuffer() {
+            if Task.isCancelled { reader.cancelReading(); throw CancellationError() }
+            count += CMSampleBufferGetNumSamples(buffer)
+        }
         guard reader.status == .completed else { throw reader.error ?? ClipsError.media("Media decoding failed.") }
         return count
     }
@@ -115,6 +118,7 @@ public enum MediaExport {
         guard exporter.status == .completed else { throw exporter.error ?? ClipsError.media("Export did not complete.") }
         guard try decodedSamples(at: temporary) > 0 else { throw ClipsError.media("Export contains no video.") }
         if !mixes.isEmpty { _ = try decodedSamples(at: temporary, kind: .microphone) }
+        try Task.checkCancellation()
         let handle = try FileHandle(forWritingTo: temporary); try handle.synchronize(); try handle.close()
         try FileManager.default.moveItem(at: temporary, to: destination)
         progress(1)

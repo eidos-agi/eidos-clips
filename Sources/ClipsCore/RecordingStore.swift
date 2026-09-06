@@ -62,11 +62,14 @@ public final class RecordingStore {
         guard manifest.segments.count <= 30_000 else { throw ClipsError.invalidPackage("Too many media segments.") }
     }
 
+    /// Runs large-file hashing away from the caller's UI actor.
+    public static func digestAsync(_ url: URL) async throws -> String { try digest(url) }
+
     public static func digest(_ url: URL) throws -> String {
         let input = try FileHandle(forReadingFrom: url)
         defer { try? input.close() }
         var hash = SHA256()
-        while let data = try input.read(upToCount: 1_048_576), !data.isEmpty { hash.update(data: data) }
+        while let data = try input.read(upToCount: 1_048_576), !data.isEmpty { try Task.checkCancellation(); hash.update(data: data) }
         return hash.finalize().map { String(format: "%02x", $0) }.joined()
     }
 

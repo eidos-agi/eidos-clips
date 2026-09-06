@@ -44,6 +44,12 @@ final class MediaTests: XCTestCase {
         let before = try Data(contentsOf: package.appendingPathComponent(RecordingStore.manifestName))
         let full = try await MediaExport.export(package: package, to: root.appendingPathComponent("full.mp4"))
         XCTAssertEqual(try MediaExport.decodedSamples(at: full), 30)
+        let cancelledDecode = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            return try MediaExport.decodedSamples(at: full)
+        }
+        do { _ = try await cancelledDecode.value; XCTFail("Cancelled validation must stop decoding") }
+        catch is CancellationError {} catch { XCTFail("Unexpected cancellation result: \(error)") }
         let trim = try await MediaExport.export(package: package, to: root.appendingPathComponent("trim.mp4"), trim: 0.2...0.7)
         XCTAssertEqual(AVURLAsset(url: trim).duration.seconds, 0.5, accuracy: 0.05)
         let cut = try await MediaExport.export(package: package, to: root.appendingPathComponent("cut.mp4"), recipe: EditRecipe(ranges: [EditRange(0, 0.3), EditRange(0.7, 1)]))

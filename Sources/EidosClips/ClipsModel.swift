@@ -255,12 +255,13 @@ final class ClipsModel: ObservableObject {
                 let movie = cache.appendingPathComponent(input.sha256 + ".mp4")
                 let checksum = cache.appendingPathComponent(input.sha256 + ".sha256")
                 let expected = try? String(contentsOf: checksum)
-                let actual = try? RecordingStore.digest(movie)
+                let actual = try? await RecordingStore.digestAsync(movie)
                 let cacheValid = expected?.count == 64 && actual != nil && expected == actual
                 if !cacheValid {
                     try? FileManager.default.removeItem(at: movie)
                     _ = try await exportAdapter.run(package: clip.package, request: request, to: movie) { value in Task { @MainActor in self.jobProgress = value } }
-                    try RecordingStore.digest(movie).write(to: checksum, atomically: true, encoding: .utf8)
+                    let digest = try await RecordingStore.digestAsync(movie)
+                    try digest.write(to: checksum, atomically: true, encoding: .utf8)
                 }
                 guard jobGate.finish(request, input: try artifact(for: clip.package)) else { throw CancellationError() }
                 openReview(package: clip.package, export: movie)
@@ -416,7 +417,7 @@ final class ClipsModel: ObservableObject {
         job = Task {
             defer { busy = false; job = nil }
             do {
-                let input = ArtifactReference(id: UUID(), sha256: try RecordingStore.digest(source), revision: 1)
+                let input = ArtifactReference(id: UUID(), sha256: try await RecordingStore.digestAsync(source), revision: 1)
                 let request = JobRequest(adapter: folderDestination.descriptor, input: input)
                 guard let adapter = registry.destination(folderDestination.descriptor.id) else { throw ModuleError.invalid("Folder delivery module is disabled.") }
                 _ = try await adapter.deliver(source, request: request, to: destination)
@@ -438,7 +439,7 @@ final class ClipsModel: ObservableObject {
             defer { try? FileManager.default.removeItem(at: output) }
             do {
                 guard let bytes = try FileManager.default.attributesOfItem(atPath: source.path)[.size] as? NSNumber, bytes.intValue <= 1_000_000 else { throw ModuleError.invalid("Use a caption file under 1 MB.") }
-                let request = JobRequest(adapter: processor.descriptor, input: ArtifactReference(id: selected.id, sha256: try RecordingStore.digest(source), revision: 1))
+                let request = JobRequest(adapter: processor.descriptor, input: ArtifactReference(id: selected.id, sha256: try await RecordingStore.digestAsync(source), revision: 1))
                 _ = try await processor.process(source, request: request, to: output)
                 let cues = try Captions.parse(Data(contentsOf: output))
                 guard cues.allSatisfy({ $0.end <= duration + 0.1 }) else { throw ModuleError.invalid("Caption timing extends beyond this recording.") }
@@ -456,7 +457,7 @@ final class ClipsModel: ObservableObject {
         job = Task {
             defer { busy = false; job = nil }
             do {
-                let request = JobRequest(adapter: adapter.descriptor, input: ArtifactReference(id: UUID(), sha256: try RecordingStore.digest(source), revision: 1))
+                let request = JobRequest(adapter: adapter.descriptor, input: ArtifactReference(id: UUID(), sha256: try await RecordingStore.digestAsync(source), revision: 1))
                 _ = try await adapter.deliver(source, request: request, to: destination)
                 notice = "Watch folder saved. Send the whole folder; this does not create a hosted link."
                 NSWorkspace.shared.activateFileViewerSelecting([destination])
