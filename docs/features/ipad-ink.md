@@ -2,6 +2,8 @@
 
 **Requested by Daniel on September 6, 2026; not implemented.** Core outcome: while recording from a MacBook Pro, draw with Apple Pencil on a paired iPad and see those marks on the Mac and in the finished recording. No change to the recording app's local-first or replaceable-agent architecture is needed. This is an iPad input companion, not a commitment to build a full iPad recorder.
 
+This is a specialization of [device-neutral drawing](drawing.md), governed by [PLUGINS.md](../PLUGINS.md). Mouse/trackpad drawing and recording with drawing off remain usable without an iPad. PencilKit and the pairing transport stay inside this adapter; canonical ink and the trusted renderer belong to the host annotation subsystem.
+
 Feature IDs A01–A07 in [FEATURE-MAP.md](../FEATURE-MAP.md). Companion protocol scope belongs in [INTEGRATIONS.md](../INTEGRATIONS.md); performance/report rules belong in [DIAGNOSTICS.md](../DIAGNOSTICS.md).
 
 ## Sub-features
@@ -18,7 +20,7 @@ Feature IDs A01–A07 in [FEATURE-MAP.md](../FEATURE-MAP.md). Companion protocol
 
 ### Recommended experience
 
-Mac: **Draw from iPad** → choose/pair the iPad → explicitly share the selected display/region preview. iPad: the preview fills a canvas with a small Pencil toolbar. Pencil draws; fingers operate the toolbar or pan/zoom locally. Drawing must not click buttons or move windows in the underlying Mac app. Keep the Mac mouse/trackpad available for the actual demonstration.
+Mac: **Draw → Connect device → iPad** → choose/pair the iPad → explicitly share the selected display/region preview. iPad: the preview fills a canvas with a small Pencil toolbar. Pencil draws; fingers operate the toolbar or pan/zoom locally. Drawing must not click buttons or move windows in the underlying Mac app. Keep the Mac mouse/trackpad available for the actual demonstration.
 
 Persistent annotations explain something: a circle, handwritten label, arrow or diagram. Laser mode points briefly and fades. Whiteboard mode provides a clean page for a detour, then returns to the live demonstration. These should be small tool choices, not a general illustration editor.
 
@@ -30,7 +32,7 @@ Persistent annotations explain something: a circle, handwritten label, arrow or 
 | Native iPad companion, using PencilKit for input and a paired local transport | Own pairing flow, Pencil-oriented toolbar, selected-area preview and annotation protocol | Needs an iPad target/distribution path and real latency/reconnection work; PencilKit is not a synchronization protocol |
 | Browser canvas on iPad | Possible later installation-light entry point | Pencil/palm behavior, transport trust and local-network/browser constraints require separate proof; do not assume parity with native input |
 
-Recommendation: evaluate Sidecar with a minimal Mac annotation surface as the shortest physical experiment. Use its measured behavior to decide whether it meets the intended integrated experience. The preferred dedicated product direction is a native companion if Sidecar's focus, setup or canvas limitations interfere. Do not build both complete transports before that comparison.
+Recommendation: implement a shared minimal annotation surface with local mouse/trackpad input first, then evaluate Sidecar against it as the shortest physical iPad experiment. Use its measured behavior to decide whether it meets the intended integrated experience. The preferred dedicated product direction is a native companion if Sidecar's focus, setup or canvas limitations interfere. Do not build both complete transports before that comparison.
 
 Apple documents [Pencil input through Sidecar](https://support.apple.com/en-us/102597), including compatible-device/account requirements and wireless/USB use. [PencilKit](https://developer.apple.com/documentation/pencilkit/drawing-with-pencilkit) supplies native drawing facilities. [Multipeer Connectivity](https://developer.apple.com/documentation/multipeerconnectivity) is a candidate for nearby discovery/communication; evaluate it against Network.framework/Bonjour with authenticated transport rather than promising a particular wireless route. [Local-network permission](https://developer.apple.com/videos/play/wwdc2020/10110/) must be handled explicitly. These are platform capabilities, not evidence the integration works in Clips.
 
@@ -38,7 +40,7 @@ Apple documents [Pencil input through Sidecar](https://support.apple.com/en-us/1
 
 The following flow is proposed; these controls do not exist yet.
 
-1. On the Mac ready panel/HUD, choose **Draw from iPad**. Open the Clips companion on iPad. Discover nearby Mac or scan its short-lived QR invitation, then confirm the intended device/session on the Mac. A matching-code alternative can help when scanning is inconvenient; authentication design must resist guessing and replay.
+1. On the Mac ready panel/HUD, choose **Draw → Connect device → iPad**. Open the Clips companion on iPad. Discover nearby Mac or scan its short-lived QR invitation, then confirm the intended device/session on the Mac. A matching-code alternative can help when scanning is inconvenient; authentication design must resist guessing and replay.
 2. Share only the current selected display/region preview to the paired iPad. Make pairing and active screen-preview sharing separate visible states. No cloud account is required by the proposed design.
 3. Draw a circle around a button, underline text, or write a label. The iPad displays immediate local ink; the Mac displays the acknowledged ink layer. Both reflect undo/erase/clear consistently.
 4. Use **Laser** for a temporary point or **Whiteboard** for a diagram. Return to the screen without losing the separate whiteboard canvas. Keep capture start/stop controlled on the Mac in the first version; remote capture control is a separate capability.
@@ -62,7 +64,7 @@ Initial performance goal for discussion: added Pencil-to-visible-Mac-ink latency
 
 ### Data/rendering boundaries to prove
 
-- Mac is authoritative for the capture session, target rectangle, ink revision and timeline. Send a versioned target description with aspect ratio, crop and transform. Use normalized canvas coordinates with explicit letterbox/pan/zoom conversion; reject stale target epochs after a scope change.
+- The Mac host is authoritative for the capture session, target rectangle, ink revision and timeline. The iPad adapter translates to the same device-neutral ink operations as local mouse/pen input; native drawing objects must not become the only saved format. Send a versioned target description with aspect ratio, crop and transform. Use normalized canvas coordinates with explicit letterbox/pan/zoom conversion; reject stale target epochs after a scope change.
 - Use bounded ordered ink messages with session/epoch, stroke ID, sequence, tool and points; reliable commit/undo/clear operations plus snapshots reconcile reconnects. Validate sizes, rates, coordinates and tool enums. PencilKit snapshot/delta behavior and partial-stroke latency need a spike; do not repeatedly send the entire drawing unboundedly for every point.
 - A selected-area preview goes Mac → iPad; ink goes iPad → Mac. Prioritize ink/control over the preview stream and lower preview quality under load. Preview is screen content shared to the paired device and must remain outside logs/report commits.
 - Render through one defined ink layer. With the requested include-Clips capture policy, a scoped Mac overlay can provide the first implementation, provided output confirms it is captured exactly once. If later composited directly into video, prevent the same on-screen overlay from being captured a second time.

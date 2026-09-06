@@ -49,11 +49,17 @@ Prefer authenticated local IPC with peer/code identity checks where available an
 
 No hidden call detection or autonomous always-on capture. A remote agent receives finished artifacts only through an explicitly configured route. Each destination/policy is separate so unrelated projects or accounts do not mix by default.
 
-## iPad drawing companion
+## Drawing adapters and paired companions
 
-The requested [Draw from iPad integration](features/ipad-ink.md) is separate from the M4 coding-agent client. A paired iPad receives only the explicitly selected screen/region preview and can send validated ink operations for that target. It does not inherit recording start/stop, arbitrary Mac input, library access, or upload authority. Separate permission for preview sharing from remembered device pairing; reconnect must not silently share the whole desktop.
+The [drawing subsystem](features/drawing.md) accepts local pointer/pen and paired-device adapters through the same canonical ink contract. Local input needs neither pairing nor streamed preview. The requested [iPad adapter](features/ipad-ink.md) is separate from the M4 coding-agent client. A paired drawing device receives only the explicitly selected screen/region preview, when its adapter requires it, and can send validated ink operations for that target. It does not inherit recording start/stop, arbitrary Mac input, library access, or upload authority. Separate permission for preview sharing from remembered device pairing; reconnect must not silently share the whole desktop.
 
 Mac owns the session/timeline/target epoch and accepted ink revision. The proposed protocol carries versioned, bounded stroke events plus reliable commit/undo/clear and reconnect snapshots, with encrypted authenticated transport and revocation. Scope changes invalidate stale coordinates. Preview video goes to the iPad; ink returns to the Mac. Keep both contents out of logs and public diagnostic packets. The exact transport and iPadOS app/distribution path need a physical feasibility spike; no remote-control service has been implemented.
+
+## Editor, processor and destination contracts
+
+[PLUGINS.md](PLUGINS.md) defines separate owners for edit recipes, artifact processing, export validation and delivery receipts. Providers receive granted immutable artifacts and return typed proposals/results through host-owned jobs; they do not edit the recorder manifest directly. Include source digest/edit revision, adapter contract/version, operation ID, cancellation and idempotency semantics. Reject stale results and preserve originals when an adapter fails, is removed or becomes incompatible.
+
+Keep built-in preview/trim/local MP4/native sharing usable without external installs. A richer editor, transcription model, share-link provider or diagnostic publisher can be replaced independently. Device input does not gain agent-control authority, and choosing an upload destination does not authorize sharing unrelated clips or diagnostics.
 
 ## Completion events
 

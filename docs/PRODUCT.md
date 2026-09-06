@@ -61,6 +61,12 @@ Keep the camera bubble and control strip visually distinct. Provide practical bu
 
 Initial design deliverables during M2: ready panel, recording strip, finish screen, Clips window, and recovery state. Review them at laptop scale and on an external display. These are future implementation deliverables; no mockups have been created in this planning change.
 
+### Optional tools and input devices
+
+Recording works without drawing hardware or optional extensions. **Draw** can use the Mac mouse/trackpad, a supported attached pen, or a paired device such as iPad/Pencil. The annotation subsystem owns portable ink and tool behavior; adapters own device input/transport. Pairing appears only when a selected input needs it.
+
+Basic playback/trim/local MP4 remain bundled. Richer editors, processing/captions and sharing destinations attach through independent contracts; expose them as familiar actions such as **Edit with…** or **Send to…**, not a technical plugin dashboard in the recording flow. Disabled or missing optional tools must not compromise original recordings. See [PLUGINS.md](PLUGINS.md).
+
 ## Scope
 
 | Capability | Native 1.0 | Later |

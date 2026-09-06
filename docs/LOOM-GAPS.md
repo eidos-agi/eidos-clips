@@ -27,6 +27,10 @@ Loom's published capabilities span recording, editing, accessible playback, shar
 
 Loom's [published feature inventory](https://www.loom.com/pricing) also lists content management, recording enhancements and viewer/engagement insights. That is a useful completeness check, not a reason to copy every team administration or monetization feature.
 
+## How these opportunities attach
+
+[PLUGINS.md](PLUGINS.md) groups these opportunities into drawing-input adapters, presentation contributions, editor/processor jobs, destination/viewer integrations, scoped controls and diagnostic publishers. They do not all belong inside CaptureController. Built-in mouse/trackpad annotation serves people without a tablet; iPad is one adapter. No drawing or installed plugins are required for the base recorder. Each optional family must preserve the core path and demonstrate its own failure behavior.
+
 ## Suggested sequence for discussion
 
 1. **Trust and control:** the four WANT.md items, diagnostic report outbox, permission/device readiness, real audio meters, countdown/cancel, physical capture evidence, and signed installation.

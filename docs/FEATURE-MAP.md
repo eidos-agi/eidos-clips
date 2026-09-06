@@ -22,7 +22,7 @@ Poteto's useful idea is to map features by their user entry points, driving step
 |---|---|---|---|
 | Get ready quickly | Large recording window, display selector, three optional input switches | Compact ready panel, region selector, exact preview, countdown, meters, remembered choices | [Prepare and record](features/record.md) |
 | Stay in control during a take | Pause/resume/finish in app and menu bar; timer; floating camera | Small HUD, include Clips in video, global shortcuts, live input controls, stronger interruption behavior | [Prepare and record](features/record.md) |
-| Explain with Apple Pencil | No iPad integration yet | Pair iPad, selected-area preview, live ink on Mac and recording; optional laser/whiteboard | [Draw from iPad](features/ipad-ink.md) |
+| Draw, with or without a separate device | No annotation subsystem yet | Optional mouse/trackpad drawing; iPad/pen/other inputs through adapters; recorder works with drawing off | [Drawing](features/drawing.md), [iPad adapter](features/ipad-ink.md) |
 | Keep useful work | Segmented originals, checked export, failed/recoverable package discovery | Physical failure evidence, manifest/orphan repair, storage management, safe discard/trash | [Keep and recover](features/recovery.md) |
 | Finish and find it | Playback, title, trim-to-new-MP4, thumbnails, title search, Finder | Saved edit decisions, projects/notes, faster repeat opening, useful library storage controls | [Review and library](features/review.md) |
 | Give it to someone or an agent | Local MP4 and native Share sheet | Verified folder delivery, reusable destinations, local command/event contract; links/transcripts later | [Share and hand off](features/handoff.md) |
@@ -77,13 +77,20 @@ The primary loop is **prepare → record → finish → review → export or han
 | Q03 | Physical capture and supported-device matrix | No completed physical evidence found | V01–V38 remain subject to their exact evidence requirements; M5 open |
 | Q04 | Update/reinstall path | Missing product flow | Proposed; stable identity, preserved recordings/permissions, user-controlled updates |
 | Q05 | Browser edition / other native platforms | Missing | Browser later M6; other native platforms separate decision |
-| A01 | Pair/reconnect/revoke an iPad | Missing | Requested September 6; authenticated annotation/preview session, not remote desktop authority |
-| A02 | Selected Mac capture-area preview on iPad | Missing | Recommended to make Pencil placement accurate; explicit preview sharing |
-| A03 | Live Pencil ink visible on Mac and in export | Missing | Requested; pen/highlighter/eraser/undo tools proposed |
+| A01 | Pair/reconnect/revoke a drawing device | Missing | Requested; iPad first remote adapter, authenticated scoped session; local mouse/pen needs no pairing |
+| A02 | Selected-area preview for capable remote drawing adapters | Missing | Explicit scoped preview; not required by local pointer/attached-pen input |
+| A03 | Device-neutral ink visible on Mac and in export | Missing | Requested; shared strokes/scene, optional pressure/tilt, no vendor SDK in canonical data |
 | A04 | Laser pointer and fading marks | Missing | Proposed presentation mode |
 | A05 | Whiteboard canvas and return to the demo | Missing | Proposed companion mode |
 | A06 | Ink geometry, latency and reconnect correctness | Missing | Required for the integration; physical cases A-V01–A-V07 in the detail page |
-| A07 | Optional ink source and structured performance evidence | Missing | Local ink sidecar proposed; only content-free diagnostics may reach repo |
+| A07 | Optional ink source and structured performance evidence | Missing | Local portable ink sidecar proposed; only content-free diagnostics may reach repo |
+| A08 | Mouse/trackpad drawing and drawing-off recorder path | Missing drawing; basic recorder already exists | Required accessible default; no device/account/plugin setup to record |
+| A09 | Additional pen/touch/browser input adapters | Missing | Requested replaceability; individual device/platform support needs qualification |
+| X01 | Narrow versioned subsystem contracts and capability registry | Missing | Requested modular design; first-party registration before any public plugin loader |
+| X02 | Editing/processing/sharing jobs separate from recording | Partial architectural foundation; existing UI still couples operations | Required separation; completed immutable inputs, cancel/stale-result/receipt handling |
+| X03 | Extension compatibility, isolation and disable path | Missing | Required before external code loading; interface alone is not fault isolation |
+| X04 | Portable artifacts and missing-extension behavior | Partial: originals/local MP4 exist | Preserve canonical data, recipes/provenance; ordinary playback must survive removal |
+| X05 | Extension diagnostics and contract acceptance | Missing | Attribute waits/failures/version; X-V01–X-V10 define proof, none yet passed |
 
 For a broader Loom-type opportunity inventory, including attention tools, privacy/redaction, editing, hosted viewing, access, and collaboration, see [LOOM-GAPS.md](LOOM-GAPS.md). The [structured diagnostics design](DIAGNOSTICS.md) covers the requested local-log-to-repository feedback loop.
 
@@ -100,9 +107,9 @@ These priorities are recommendations. Items marked Proposed above need a scope d
 
 The four original WANT.md changes form the next requested implementation slice, now extended by Daniel’s request for structured reports committed back through the local agent. Signing and physical validation remain necessary alongside it. This map does not make cloud upload, built-in AI, accounts, notifications, or an editor timeline prerequisites for a useful recorder.
 
-### Requested addition: Draw from iPad
+### Requested addition: Optional drawing and replaceable tools
 
-Daniel wants to draw with Apple Pencil while recording on his MacBook Pro. Treat this as an explicit product integration: pair an iPad, draw over the chosen screen area, and retain the marks in the video. A selected-area preview makes placement practical. Laser and whiteboard are proposed modes. Evaluate Sidecar plus a Mac annotation canvas as a short feasibility experiment, then choose whether a native companion is needed for the desired experience. Details, transport boundaries and physical proof are in [Draw from iPad](features/ipad-ink.md). This addition changes the map, not the baseline application code or evidence.
+Daniel wants Apple Pencil drawing for himself and a design that also supports people with another input device or no drawing device. The [drawing subsystem](features/drawing.md) owns portable ink and tools; local mouse/trackpad and [iPad](features/ipad-ink.md) are input adapters. Drawing can be off without affecting recording. Editing, sharing, processing and diagnostic publishing have separate contracts in [PLUGINS.md](PLUGINS.md), with bundled defaults and no initial marketplace/runtime loader. These additions change the map, not the baseline application code or evidence.
 
 ## Evidence fetched with this map
 

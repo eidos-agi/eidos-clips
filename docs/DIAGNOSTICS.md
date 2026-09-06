@@ -62,7 +62,8 @@ Record wall-clock timestamps locally when useful. Repository reports use relativ
 | Library/playback | Scan/thumbnail/open/first-frame/seek latency, result counts, missing/corrupt entry counts, repeated-export count | Does the library get slower or consume more storage during ordinary use? |
 | Resource health | Periodic RSS/CPU, available-space bucket, accumulated media/log bytes, dropped-event count, log write latency | Is memory growing with duration? Does diagnostics itself slow capture? |
 | Future delivery | Copy/verify/retry transitions, destination class, byte counts, local/remote confirmation state | Did the file copy locally, upload remotely, or actually become accessible? |
-| iPad ink companion | Pairing outcome code, target epoch, preview age, stroke-batch counts, transport RTT, Mac receive/render timing, queue drops/reconnect count, stale-message rejection | Is drawing late, incorrectly mapped or disconnected? Never include stroke coordinates, handwriting, preview images, peer identifiers or pairing material |
+| Drawing input adapter / paired companion | Pairing outcome code, target epoch, preview age, stroke-batch counts, transport RTT, Mac receive/render timing, queue drops/reconnect count, stale-message rejection | Is drawing late, incorrectly mapped or disconnected? Never include stroke coordinates, handwriting, preview images, peer identifiers or pairing material |
+| Extension host/jobs | Adapter ID/version/contract, capability classes, operation/source revision, handshake/queue/wait timing, cancellation/deadline, stale result, validation/disable reason | Which adapter slowed or failed, and did the host preserve the recording and reject incorrect results? |
 | Diagnostics pipeline | Report queued/validated/rejected/committed, packet digest, retry reason and returned Git SHA | Did useful evidence reach the repo exactly once? |
 
 Do not log video/audio samples, thumbnails, transcripts, clip titles, app/window/document names, clipboard contents, typed keys, account names, credentials, raw device serials, URL query strings, or arbitrary error descriptions. Normalize errors to an allowlisted domain/code/stage; raw NSError text and crash stacks can contain paths and require a separate local-only treatment.
@@ -91,7 +92,9 @@ Use an explicitly enabled diagnostic destination for this machine. Once configur
 
 The current session has not published any logs or changed access. No diagnostics branch or automatic ingestion exists yet. If a report needs real screen content or a raw stack to diagnose it, retain it locally and identify that missing evidence explicitly; do not assume deletion can undo publication to a public Git repository.
 
-For the requested iPad integration, record network RTT, on-device stage durations, and measured cross-device latency with clock-offset uncertainty kept explicit. An acknowledgement proves message processing, not visible ink latency or inclusion in the recorded frame. Physical cases and content boundaries are in [features/ipad-ink.md](features/ipad-ink.md). Public reports carry metric summaries only.
+The [extension boundaries](PLUGINS.md) keep diagnostic collection and sanitization owned by the host; a publisher is only a destination adapter for an already-validated report. An extension cannot suppress host observations or emit arbitrary public fields. Attribute failures by adapter/version/stage without recording sensitive input/provider responses.
+
+For drawing-device integrations, including the requested iPad, record network RTT, on-device stage durations, and measured cross-device latency with clock-offset uncertainty kept explicit. An acknowledgement proves message processing, not visible ink latency or inclusion in the recorded frame. Physical cases and content boundaries are in [features/ipad-ink.md](features/ipad-ink.md). Public reports carry metric summaries only.
 
 ## Acceptance before enabling automatic report commits
 

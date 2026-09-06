@@ -2,6 +2,8 @@
 
 This is a proposed design. Platform behavior and recovery guarantees require the M0/M1 experiments in [ROADMAP.md](ROADMAP.md).
 
+The requested subsystem/adapter boundaries are specified in [PLUGINS.md](PLUGINS.md). Capture, the common clock, durable originals, recovery, baseline playback/MP4 export and diagnostic collection remain core responsibilities. Optional drawing devices, richer editing, processing and delivery cannot take ownership of recording lifecycle or original files. These are planned boundaries, not an implemented plugin host.
+
 ## Boundaries
 
 Build a native Swift app with AppKit for menu-bar/panel behavior and SwiftUI where it simplifies regular settings and library views. Use ScreenCaptureKit, AVFoundation, and hardware-supported encoding. Split responsibility into small modules; keep third-party dependencies minimal and justified. A thin Xcode application target owns signing and entitlements; a Swift package contains testable core logic. Pin the Xcode/SDK and Swift language mode after M0.
@@ -11,12 +13,15 @@ Build a native Swift app with AppKit for menu-bar/panel behavior and SwiftUI whe
 | CaptureCoordinator | Session lifecycle, commands, permissions, interruption policy, and exclusive ownership |
 | ScreenSource / CameraSource | Device/source selection and bounded media delivery |
 | AudioPipeline | Track capture, clock mapping, resampling, and optional processing |
-| SceneRenderer | Capture geometry, clean screen plus camera composition, and matching preview |
+| SceneRenderer | Trusted capture/camera/optional annotation composition and matching preview; bounded declarative contributions |
+| Annotation subsystem | Device-neutral strokes, canvas revisions, tools and transforms; local/paired input adapters are replaceable |
 | RecordingStore | Media writers, journal, checkpoints, crash recovery, and file integrity |
-| ExportService | Edits, audio mix, standard MP4 export, and playable-output validation |
+| Editing subsystem | Nondestructive recipes over immutable artifacts; bundled trim or optional editor providers |
+| ExportService | Audio mix, standard MP4/rendered derivatives and playable-output validation; validates provider output |
 | ClipCatalog | Local discovery and search; rebuildable from recording manifests |
 | HandoffService | Destination copies, durable jobs, retries, and truthful completion states |
 | AutomationAdapter | Local CLI and events using the same commands as the UI |
+| Extension host | Narrow contract/capability registration and job budgets; external loading/isolation is later work |
 
 The proposed initial target is macOS 14+ on Apple Silicon. M0 checks SDK availability and a fresh install on the oldest supported OS. A newer API must have a tested fallback or an explicit higher support floor. Intel is supported only after its own build and hardware test. Browser portability lives in data formats and contracts; native media code is not forced through a browser abstraction.
 
@@ -93,6 +98,8 @@ Optional later providers may report **Uploaded** after provider confirmation and
 Persist operation state and local events rather than adding an in-app notification inbox. Status stays near the active recording or clip. Diagnostics remain local unless explicitly exported and should exclude captured content, secrets, and unnecessary window titles/absolute paths. An update check is opt-in and separate from capture; product copy must not claim zero network activity while an online option is enabled.
 
 The proposed structured diagnostic log, bounded metrics, report outbox, public-report validation and local-agent Git bridge are detailed in [DIAGNOSTICS.md](DIAGNOSTICS.md). They are not implemented. The recorder needs no GitHub write credential; raw logs stay local and the chosen local agent commits only schema-validated reports.
+
+Implement the bundled mouse/trackpad annotation path and no-drawing path before coupling to a remote input SDK. The iPad case is one adapter; editing/sharing/processing consume immutable artifacts through separate job contracts. Store canonical annotation and edit data independently of provider SDKs. First-party modules can share a process but are not thereby crash-isolated; actual process/resource/access enforcement is required before untrusted third-party loading. See PLUGINS.md for failure policy and evidence.
 
 ## Browser edition boundary
 

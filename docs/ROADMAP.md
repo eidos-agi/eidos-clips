@@ -22,6 +22,7 @@ M1 is for short internal tests with expendable material. M3 is the everyday work
 |---|---|---|---|
 | P00 | Inventory any reused Not Loom code; preserve upstream notices and separate artwork/binaries | None | Source provenance record and no inherited release binary |
 | P01 | Establish Xcode app + Swift core package; pin SDK and supported OS/architecture | P00 | Fresh build and launch on the declared oldest OS; smoke build in Mac CI |
+| P04 | Establish only the subsystem contracts needed by the next slice | P01 | PLUGINS.md boundaries; core path with extensions off, portable annotation data, local/second input substitution; no speculative loader |
 | P02 | Compare fragmented vs segmented recovery; choose one | P01 | Kill at varied write/checkpoint boundaries; reopen/decode and document maximum observed loss |
 | P03 | Verify mic/system capture, sample rates, clocks, and echo behavior | P01 | Two-source fixture and real-device playback; measured drift and double-talk outcome |
 | R10 | Implement session command/state owner and cleanup | P02, P03 | Repeated Start/Stop, canceled start, source-ended + Stop races, and normal Quit settle once |
@@ -30,7 +31,7 @@ M1 is for short internal tests with expendable material. M3 is the everyday work
 | U20 | Build ready panel, scope picker, presets, meters, and permission flow | R12 | Returning-user setup path and denied/missing optional device cases |
 | U21 | Implement scene rendering and display/window/region geometry | U20 | Pixel-inspected exports on mixed-DPI layouts; Clips windows inside the selected scope included per WANT.md and camera present once |
 | U22 | Complete pause/resume, shortcuts, mute/camera-off, and interruption UI | U21 | Static-screen pause, source unplug, Bluetooth change, lock/sleep, keyboard and VoiceOver cases |
-| U23 | Pair iPad/Pencil for live annotation of the Mac capture | U21; diagnostic timing coverage | Compare Sidecar/canvas and companion spike; A-V01–A-V07 prove pairing, selected preview, geometry, latency, saved ink, reconnect and privacy on actual devices |
+| U23 | Optional device-neutral annotation and drawing adapters | U21, P04; diagnostic timing coverage | Mouse/trackpad and drawing-off paths first; iPad/Pencil first remote adapter; A-V01–A-V07 and X-V01–X-V03 prove geometry, pairing, latency, saved ink and reconnect |
 | F30 | Add preview, title, trim, export queue, and retained takes | U22 | Frame/duration-checked trim exports; Record again retains earlier recording |
 | F31 | Add small catalog, project/notes search, missing-file and trash handling | F30 | Catalog rebuild from packages; repair stale index; recover an accidental deletion |
 | I40 | Implement destination picker, verified copies, retry queue, and source retention | F31 | Cross-volume/offline/destination-full/restart cases; no false Uploaded or Link ready |
@@ -44,11 +45,13 @@ M1 is for short internal tests with expendable material. M3 is the everyday work
 
 The immediate product slice is [WANT.md](WANT.md): compact ready/HUD, include Clips in video while excluding its audio, region selection with Esc cancel, and diagnostic logging. Extend diagnostics toward the structured report/repo feedback design in [DIAGNOSTICS.md](DIAGNOSTICS.md). Its public-report validator and local Git bridge need their own evidence before automatic publication; raw logs are not repository fixtures. Window selection can follow this slice. Broader opportunities remain for discussion in the feature map.
 
-The requested iPad/Pencil expansion is tracked in U23 and [features/ipad-ink.md](features/ipad-ink.md). Start its narrow physical feasibility experiment once capture geometry and diagnostics are available. A native iPad companion needs separate provisioning; it is not the browser edition or a new full recording product. Do not count synthetic transforms as Pencil/hardware acceptance.
+The drawing expansion is tracked in U23, [features/drawing.md](features/drawing.md), and the first remote-device case [features/ipad-ink.md](features/ipad-ink.md). P04 introduces narrow contracts from [PLUGINS.md](PLUGINS.md) as needed. Start with shared annotation data and local pointer input; run the physical iPad feasibility experiment once capture geometry and diagnostics are available. Editing/sharing/processing are separate work streams and must not depend on owning a drawing device. A native iPad companion needs separate provisioning; it is not the browser edition or a new full recording product. Do not count synthetic transforms as Pencil/hardware acceptance.
 
 In parallel with that slice, close P00–P03 using the prototype and its CI evidence. Validate the app on a physical Mac and make a two-minute display/microphone recording. Then terminate the process during capture and recover the playable portion. Measure startup, retained duration, A/V alignment, and memory. Record the chosen container/checkpoint design and supported macOS floor. Finish this proof before polishing the library or implementing cloud integrations.
 
 If M0 cannot meet the proposed recovery interval, document the measured limitation and revise the design/target explicitly. Do not carry an unproven guarantee into UI copy or the README. Prefer a narrower working capture mode for M1 over claiming all scopes before M2.
+
+The optional extension host, compatibility, job failure and portable-artifact checks X-V01–X-V10 are defined in PLUGINS.md. Apply them to implemented boundaries; they do not require building a public marketplace or every proposed adapter before the recorder is usable. External third-party code cannot be enabled until actual process/access/resource enforcement and failure containment are tested.
 
 ## Release and review rules
 

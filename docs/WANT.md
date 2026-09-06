@@ -18,6 +18,8 @@ See [FEATURE-MAP.md](FEATURE-MAP.md) for current behavior and proof, [LOOM-GAPS.
 
 6. **Draw from a paired iPad with Apple Pencil.** Daniel wants to annotate while recording from his MacBook Pro, with the drawing visible on the Mac and in the saved video. Add pairing, an accurately mapped selected-area preview, and live ink. Laser/whiteboard modes and a native companion are proposed design choices; compare a Sidecar experiment before committing to the transport. See [features/ipad-ink.md](features/ipad-ink.md) and feature IDs A01–A07. No companion feature code or physical proof exists yet.
 
+7. **Keep tools modular and devices optional.** Drawing is its own device-neutral subsystem; mouse/trackpad, iPad/Pencil, pen tablets and future companions are adapters, with no requirement to draw at all. Editing, processing, sharing and diagnostic publication use separate contracts and jobs. Core capture/save/recovery/basic playback/MP4 export must work with all optional extensions off. Start with trusted bundled modules and narrow interfaces; external plugin loading is later work requiring real compatibility/isolation. See [PLUGINS.md](PLUGINS.md) and [features/drawing.md](features/drawing.md). No framework or adapter implementation is claimed.
+
 ## Do not
 
 - Mark M5 or physical cases passed.

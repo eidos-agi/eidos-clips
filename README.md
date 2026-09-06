@@ -63,6 +63,8 @@ Start with the [feature map](docs/FEATURE-MAP.md) to see what exists, how to use
 | [Next: compact capture](docs/WANT.md) | Include Clips in the recording, small HUD, region picker, diagnostic logs |
 | [Contributing](CONTRIBUTING.md) | Build, tests, and how to send a change |
 
+Optional tools and device integrations follow the [subsystem and plugin architecture](docs/PLUGINS.md). Drawing is optional and supports a planned common interface for mouse/trackpad, iPad and other qualified adapters; richer editing, processing and sharing remain separate responsibilities. These extension boundaries are planned, not implemented.
+
 ## Delivery sequence
 
 M0 technical proof → M1 trusted recording → M2 capture experience → M3 review and clips → M4 handoff and automation → M5 signed native release. M6 adds the browser edition after the native release gate.
