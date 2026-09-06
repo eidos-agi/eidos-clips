@@ -4,6 +4,7 @@ import Combine
 import UniformTypeIdentifiers
 import ClipsCore
 import ClipsMedia
+import ClipsModules
 
 enum ClipsPage { case record, library, review }
 
@@ -21,6 +22,26 @@ struct LibraryClip: Identifiable {
 @MainActor
 final class ClipsModel: ObservableObject {
     let capture = CaptureController()
+    let registry = ExtensionRegistry()
+    let drawing = DrawingController()
+    let regionPicker = RegionPicker()
+    let exportAdapter = NativeExportAdapter()
+    let editProvider = BasicEditProvider()
+    let folderDestination = LocalFolderDestination()
+    let jobGate = JobGate()
+    @Published var selectedDisplayID: UInt32?
+    @Published var region: CaptureRegion?
+    @Published var removeSelection = false
+    @Published var jobProgress = 0.0
+    @Published var modulesEnabled = true
+    @Published var notes = ""
+    @Published var lastTrashed: URL?
+    private var job: Task<Void, Never>?
+    private var annotationPackage: URL?
+    private var annotationEvents: [TimedInk] = []
+    private var targetFrame: CGRect?
+    struct TimedInk: Codable { let elapsed: Double; let operation: InkOperation }
+    var configureWindow: (() -> Void)?
     @Published var page: ClipsPage = .record
     @Published var phase: CaptureState = .idle
     @Published var microphone = true
@@ -53,13 +74,28 @@ final class ClipsModel: ObservableObject {
     var displayName: String { displayNames.indices.contains(displayIndex) ? displayNames[displayIndex] : "Choose a display" }
 
     init() {
+        for descriptor in [drawing.pointer.descriptor, exportAdapter.descriptor, editProvider.descriptor, folderDestination.descriptor,
+            ModuleDescriptor(id: "org.eidos.diagnostics.outbox", name: "Diagnostic outbox", capabilities: [.diagnostics])] {
+            try? registry.register(descriptor)
+        }
+        DiagnosticLog.shared.record(.appLaunch)
+        capture.packageReady = { [weak self] in self?.annotationPackage = $0; self?.annotationEvents = [] }
+        capture.prepared = { [weak self] displayID, region in self?.prepareDrawing(displayID: displayID, region: region) }
+        drawing.onAccepted = { [weak self] operation in
+            guard let self, self.phase == .recording, self.annotationEvents.count < 20_000 else { return }
+            self.annotationEvents.append(TimedInk(elapsed: self.capture.elapsed, operation: operation))
+            if operation.kind != .append { self.saveAnnotations() }
+        }
+
         capture.changed = { [weak self] in
             guard let self else { return }
             self.phase = self.capture.state.value
+            self.drawing.inputAllowed = self.phase != .paused && self.phase != .finalizing
+            if self.phase == .idle { self.saveAnnotations(); self.drawing.hide(); self.annotationPackage = nil }
             self.stateChanged?()
         }
         capture.report = { [weak self] message in self?.notice = message }
-        capture.completed = { [weak self] package, export in self?.openReview(package: package, export: export) }
+        capture.completed = { [weak self] package, export in self?.saveAnnotations(); self?.openReview(package: package, export: export) }
         timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.elapsed = self?.capture.elapsed ?? 0 }
         }
@@ -68,7 +104,7 @@ final class ClipsModel: ObservableObject {
 
     func navigate(_ destination: ClipsPage) {
         guard !active, !busy else { return }
-        player.pause(); notice = nil; page = destination
+        player.pause(); notice = nil; page = destination; configureWindow?()
         if destination == .library { refreshLibrary() }
     }
 
@@ -82,7 +118,8 @@ final class ClipsModel: ObservableObject {
                 displayNames = capture.displays.enumerated().map { index, display in
                     "Display \(index + 1) · \(display.width) × \(display.height)"
                 }
-                displayIndex = min(displayIndex, max(0, displayNames.count - 1))
+                if let id = selectedDisplayID, let index = capture.displays.firstIndex(where: { $0.displayID == id }) { displayIndex = index }
+                else { displayIndex = 0; selectedDisplayID = capture.displays.first?.displayID; region = nil }
             } catch { notice = error.localizedDescription }
         }
     }
@@ -90,7 +127,9 @@ final class ClipsModel: ObservableObject {
     func start() {
         guard canRecord else { return }
         player.pause(); page = .record; notice = nil
-        Task { await capture.start(displayIndex: displayIndex, microphone: microphone, systemAudio: systemAudio, camera: camera) }
+        DiagnosticLog.shared.record(.commandAccepted)
+        drawing.reset()
+        Task { await capture.start(displayID: selectedDisplayID, region: region, microphone: microphone, systemAudio: systemAudio, camera: camera) }
     }
     func pause() { capture.togglePause() }
     func stop() {
@@ -129,14 +168,26 @@ final class ClipsModel: ObservableObject {
 
     func open(_ clip: LibraryClip) {
         guard canRecord else { return }
-        busy = true; notice = clip.needsRecovery ? "Recovering the completed part of this recording…" : "Opening your clip…"
-        Task {
-            defer { busy = false }
+        busy = true; jobProgress = 0; notice = clip.needsRecovery ? "Recovering completed media…" : "Opening your clip…"
+        job = Task {
+            defer { busy = false; job = nil }
             do {
-                let result = try await ClipsMedia.MediaExport.export(package: clip.package, to: capture.exportURL(prefix: "Clip"))
-                openReview(package: clip.package, export: result)
+                let input = try artifact(for: clip.package)
+                let request = JobRequest(adapter: exportAdapter.descriptor, input: input); jobGate.begin(request)
+                let cache = capture.root.deletingLastPathComponent().appendingPathComponent("Previews")
+                try FileManager.default.createDirectory(at: cache, withIntermediateDirectories: true)
+                let movie = cache.appendingPathComponent(input.sha256 + ".mp4")
+                let checksum = cache.appendingPathComponent(input.sha256 + ".sha256")
+                if !(FileManager.default.fileExists(atPath: movie.path) && (try? String(contentsOf: checksum)) == (try? RecordingStore.digest(movie))) {
+                    try? FileManager.default.removeItem(at: movie)
+                    _ = try await exportAdapter.run(package: clip.package, request: request, to: movie) { value in Task { @MainActor in self.jobProgress = value } }
+                    try RecordingStore.digest(movie).write(to: checksum, atomically: true, encoding: .utf8)
+                }
+                guard jobGate.finish(request, input: try artifact(for: clip.package)) else { throw CancellationError() }
+                openReview(package: clip.package, export: movie)
                 notice = clip.needsRecovery ? "Recovered completed media. Review the ending before sharing." : nil
-            } catch { notice = error.localizedDescription }
+            } catch is CancellationError { notice = "Cancelled. Your recording is kept." }
+            catch { notice = error.localizedDescription; DiagnosticLog.shared.record(.exportFailed) }
         }
     }
 
@@ -153,7 +204,8 @@ final class ClipsModel: ObservableObject {
         }
         duration = AVURLAsset(url: export).duration.seconds
         trimStart = 0; trimEnd = duration; trimming = false; page = .review
-        refreshLibrary(); notice = nil; showWindow?()
+        notes = (try? String(contentsOf: package.appendingPathComponent("notes.txt"))) ?? ""
+        refreshLibrary(); notice = nil; configureWindow?(); showWindow?()
     }
 
     func saveTitle() {
@@ -170,13 +222,110 @@ final class ClipsModel: ObservableObject {
         let name = title.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "/", with: "-")
         panel.nameFieldStringValue = (name.isEmpty ? "Clip" : name) + (trimming ? "-trimmed.mp4" : ".mp4")
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        let range: ClosedRange<Double>? = trimming ? trimStart...trimEnd : nil
-        busy = true; notice = "Exporting your clip…"
-        Task {
-            defer { busy = false }
+        busy = true; jobProgress = 0; notice = "Exporting your clip…"
+        job = Task {
+            defer { busy = false; job = nil }
             do {
-                exportedURL = try await ClipsMedia.MediaExport.export(package: selected.package, to: url, trim: range)
+                let input = try artifact(for: selected.package)
+                let request = JobRequest(adapter: exportAdapter.descriptor, input: input); jobGate.begin(request)
+                let recipe = trimming ? try editProvider.recipe(duration: duration, selection: EditRange(trimStart, trimEnd), removeSelection: removeSelection) : nil
+                let result = try await exportAdapter.run(package: selected.package, request: request, to: url, recipe: recipe) { value in Task { @MainActor in self.jobProgress = value } }
+                guard jobGate.finish(request, input: try artifact(for: selected.package)) else { throw CancellationError() }
+                exportedURL = result
+                if let recipe { try JSONEncoder().encode(recipe).write(to: result.deletingPathExtension().appendingPathExtension("edit.json"), options: .atomic) }
                 notice = "Exported. Your original recording is kept."
+            } catch is CancellationError { notice = "Cancelled. Your recording is kept." }
+            catch { notice = error.localizedDescription; DiagnosticLog.shared.record(.exportFailed) }
+        }
+    }
+    func cancelJob() { jobGate.cancel(); job?.cancel() }
+    private func artifact(for package: URL) throws -> ArtifactReference {
+        let store = try RecordingStore(open: package)
+        return ArtifactReference(id: store.manifest.id, sha256: try RecordingStore.digest(package.appendingPathComponent(RecordingStore.manifestName)), revision: 1)
+    }
+    func selectDisplay(_ index: Int) {
+        guard canRecord, capture.displays.indices.contains(index) else { return }
+        displayIndex = index; selectedDisplayID = capture.displays[index].displayID; region = nil
+    }
+    func chooseRegion() {
+        guard canRecord else { return }
+        regionPicker.begin { [weak self] id, region in
+            guard let self, let region else { return }
+            self.selectedDisplayID = id; self.region = region
+            if let index = self.capture.displays.firstIndex(where: { $0.displayID == id }) { self.displayIndex = index }
+            self.notice = "Area selected. Clips controls inside this area will be recorded."
+        }
+    }
+    func prepareDrawing(displayID: UInt32, region: CaptureRegion?) {
+        guard let screen = NSScreen.screens.first(where: { ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value == displayID }) else { return }
+        let frame: CGRect
+        if let r = region {
+            frame = CGRect(x: screen.frame.minX + r.x * screen.frame.width,
+                y: screen.frame.maxY - (r.y + r.height) * screen.frame.height,
+                width: r.width * screen.frame.width, height: r.height * screen.frame.height)
+        } else { frame = screen.frame }
+        targetFrame = frame
+        if modulesEnabled { drawing.show(frame: frame, interactive: false) }
+    }
+    func toggleDrawing() {
+        guard modulesEnabled, phase == .recording || phase == .paused else { return }
+        drawing.setInteractive(!drawing.enabled)
+    }
+    func saveAnnotations() {
+        guard let package = annotationPackage else { return }
+        do {
+            try JSONEncoder().encode(drawing.scene.snapshot).write(to: package.appendingPathComponent("annotations.json"), options: .atomic)
+            try JSONEncoder().encode(annotationEvents).write(to: package.appendingPathComponent("annotation-timeline.json"), options: .atomic)
+        } catch { notice = "Drawing sidecar could not be saved. The recorded video is retained." }
+    }
+    func setModulesEnabled(_ value: Bool) {
+        modulesEnabled = value
+        for module in registry.modules where module.id != exportAdapter.descriptor.id { registry.setEnabled(value, id: module.id) }
+        if !value { drawing.hide() }
+        else if let frame = targetFrame, active { drawing.show(frame: frame, interactive: false) }
+        if !value { trimming = false }
+        DiagnosticLog.shared.record(value ? .moduleEnabled : .moduleDisabled)
+    }
+    func diagnosticReport() {
+        do {
+            let sha = Bundle.main.object(forInfoDictionaryKey: "ClipsSourceCommit") as? String ?? ProcessInfo.processInfo.environment["GITHUB_SHA"] ?? "local"
+            let url = try DiagnosticLog.shared.createReport(sourceCommit: sha)
+            NSWorkspace.shared.activateFileViewerSelecting([url]); notice = "Report saved for your local agent. No recording content is included."
+        } catch { notice = error.localizedDescription }
+    }
+    func saveNotes() {
+        guard let selected, notes.utf8.count <= 100_000 else { return }
+        do { try notes.write(to: selected.package.appendingPathComponent("notes.txt"), atomically: true, encoding: .utf8); notice = "Notes saved locally." }
+        catch { notice = error.localizedDescription }
+    }
+    func trash(_ clip: LibraryClip) {
+        guard canRecord else { return }
+        do {
+            let folder = capture.root.deletingLastPathComponent().appendingPathComponent("Recently Deleted")
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            let destination = folder.appendingPathComponent(clip.package.lastPathComponent)
+            try FileManager.default.moveItem(at: clip.package, to: destination); lastTrashed = destination
+            if selected?.id == clip.id { player.pause(); page = .library; selected = nil }
+            refreshLibrary(); notice = "Moved to Recently Deleted. You can undo this move."
+        } catch { notice = error.localizedDescription }
+    }
+    func restoreLastTrash() {
+        guard let url = lastTrashed, canRecord else { return }
+        do { try FileManager.default.moveItem(at: url, to: capture.root.appendingPathComponent(url.lastPathComponent)); lastTrashed = nil; refreshLibrary(); notice = "Recording restored." }
+        catch { notice = error.localizedDescription }
+    }
+    func saveCopy() {
+        guard let source = exportedURL, canRecord else { return }
+        let panel = NSSavePanel(); panel.allowedContentTypes = [.mpeg4Movie]; panel.nameFieldStringValue = "Clip-copy.mp4"
+        guard panel.runModal() == .OK, let destination = panel.url else { return }
+        busy = true
+        job = Task {
+            defer { busy = false; job = nil }
+            do {
+                let input = ArtifactReference(id: UUID(), sha256: try RecordingStore.digest(source), revision: 1)
+                let request = JobRequest(adapter: folderDestination.descriptor, input: input)
+                _ = try await folderDestination.deliver(source, request: request, to: destination)
+                notice = "Verified copy saved."
             } catch { notice = error.localizedDescription }
         }
     }

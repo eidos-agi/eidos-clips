@@ -3,12 +3,20 @@ import AVFoundation
 import ScreenCaptureKit
 import ClipsCore
 import ClipsMedia
+import ClipsModules
+import CoreImage
 
 final class CaptureSink: NSObject, SCStreamOutput, SCStreamDelegate, AVCaptureAudioDataOutputSampleBufferDelegate {
     let recorder: SegmentedRecorder
     let failed: (Error) -> Void
     private var latestScreen: CMSampleBuffer?
     private var cadence: DispatchSourceTimer?
+    var preview: ((Data) -> Void)?
+    private let imageContext = CIContext()
+    private var lastPreview = 0.0
+    private var completeCount = 0
+    private var incompleteCount = 0
+    private var lastSummary = 0.0
     func startCadence(on queue: DispatchQueue) {
         let timer = DispatchSource.makeTimerSource(queue: queue)
         timer.schedule(deadline: .now(), repeating: 1.0 / 30, leeway: .milliseconds(2))
@@ -31,7 +39,19 @@ final class CaptureSink: NSObject, SCStreamOutput, SCStreamDelegate, AVCaptureAu
         if type == .audio { recorder.append(sample, kind: .systemAudio); return }
         guard type == .screen, let attachments = CMSampleBufferGetSampleAttachmentsArray(sample, createIfNecessary: false)
             as? [[SCStreamFrameInfo: Any]],
-              attachments.first?[.status] as? Int == SCFrameStatus.complete.rawValue else { return }
+              attachments.first?[.status] as? Int == SCFrameStatus.complete.rawValue else { incompleteCount += 1; return }
+        completeCount += 1
+        let now = ProcessInfo.processInfo.systemUptime
+        if now - lastSummary >= 5 {
+            DiagnosticLog.shared.record(.inputSummary, [.complete: Double(completeCount), .incomplete: Double(incompleteCount)])
+            lastSummary = now; completeCount = 0; incompleteCount = 0
+        }
+        if let preview, now - lastPreview >= 0.3, let buffer = CMSampleBufferGetImageBuffer(sample) {
+            lastPreview = now
+            let image = CIImage(cvPixelBuffer: buffer)
+            let scaled = image.transformed(by: CGAffineTransform(scaleX: min(1, 960 / image.extent.width), y: min(1, 960 / image.extent.width)))
+            if let jpeg = imageContext.jpegRepresentation(of: scaled, colorSpace: CGColorSpaceCreateDeviceRGB(), options: [CIImageRepresentationOption(rawValue: kCGImageDestinationLossyCompressionQuality as String): 0.5]) { preview(jpeg) }
+        }
         // ScreenCaptureKit can stop producing complete frames on a static desktop.
         // Hold the last complete image on a host-clock cadence so duration still advances.
         latestScreen = sample
@@ -49,6 +69,9 @@ final class CaptureController {
     var changed: (() -> Void)?
     var report: ((String) -> Void)?
     var completed: ((URL, URL) -> Void)?
+    var prepared: ((UInt32, CaptureRegion?) -> Void)?
+    var packageReady: ((URL) -> Void)?
+    var preview: ((Data) -> Void)? { didSet { sink?.preview = preview } }
     var displays: [SCDisplay] = []
     private var recorder: SegmentedRecorder?
     private var stream: SCStream?
@@ -70,14 +93,15 @@ final class CaptureController {
         changed?()
     }
 
-    func start(displayIndex: Int, microphone: Bool, systemAudio: Bool, camera: Bool) async {
+    func start(displayID: UInt32?, region: CaptureRegion?, microphone: Bool, systemAudio: Bool, camera: Bool) async {
         guard state.value == .idle else { return }
         pendingFailure = nil
         do {
+            DiagnosticLog.shared.record(.capturePreparing)
             try state.transition(to: .preparing); changed?(); report?("Preparing capture…")
             try await refreshDisplays()
             guard !displays.isEmpty else { throw ClipsError.media("No display is available.") }
-            let display = displays[min(max(displayIndex, 0), displays.count - 1)]
+            guard let display = displayID == nil ? displays.first : displays.first(where: { $0.displayID == displayID }) else { throw ClipsError.media("The selected display disconnected. Choose a display again.") }
             if microphone {
                 guard await AVCaptureDevice.requestAccess(for: .audio) else {
                     throw ClipsError.media("Microphone access was denied. Allow it or turn microphone recording off before starting.")
@@ -97,10 +121,11 @@ final class CaptureController {
                 Task { @MainActor in await self?.interrupt(error) }
             }
             recorder = writer
+            packageReady?(writer.packageURL)
             let callback = CaptureSink(recorder: writer) { [weak self] error in
                 Task { @MainActor in await self?.interrupt(error) }
             }
-            sink = callback
+            sink = callback; callback.preview = preview
             let session = AVCaptureSession()
             session.beginConfiguration()
             if microphone {
@@ -124,16 +149,22 @@ final class CaptureController {
             devices = session
             if microphone || camera { session.startRunning() }
 
-            let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
-            let ownApps = content.applications.filter { $0.processID == ProcessInfo.processInfo.processIdentifier }
-            let cameraID = cameraWindow.flatMap { $0.windowNumber > 0 ? CGWindowID($0.windowNumber) : nil }
-            let included = content.windows.filter { cameraID == $0.windowID }
-            let filter = SCContentFilter(display: display, excludingApplications: ownApps, exceptingWindows: included)
+            // Clips windows, camera and annotations are intentionally included in the recording.
+            let filter = SCContentFilter(display: display, excludingApplications: [], exceptingWindows: [])
             let config = SCStreamConfiguration()
-            let width = Int(display.width), height = Int(display.height)
-            let scale = min(1, 1920.0 / Double(width))
-            config.width = max(2, Int(Double(width) * scale) & ~1)
-            config.height = max(2, Int(Double(height) * scale) & ~1)
+            let regionWidth = region?.width ?? 1, regionHeight = region?.height ?? 1
+            if let region {
+                config.sourceRect = CGRect(x: region.x * display.frame.width, y: region.y * display.frame.height,
+                    width: region.width * display.frame.width, height: region.height * display.frame.height)
+            }
+            let width = Double(CGDisplayPixelsWide(display.displayID)) * regionWidth
+            let height = Double(CGDisplayPixelsHigh(display.displayID)) * regionHeight
+            let scale = min(1, 1920 / max(width, height))
+            config.width = max(2, Int(width * scale) & ~1)
+            config.height = max(2, Int(height * scale) & ~1)
+            DiagnosticLog.shared.record(.captureConfiguration, [.width: Double(config.width), .height: Double(config.height),
+                .region: region == nil ? 0 : 1, .microphone: microphone ? 1 : 0, .systemAudio: systemAudio ? 1 : 0, .camera: camera ? 1 : 0])
+            prepared?(display.displayID, region)
             config.pixelFormat = kCVPixelFormatType_32BGRA
             config.minimumFrameInterval = CMTime(value: 1, timescale: 30)
             config.queueDepth = 4; config.showsCursor = true
@@ -148,6 +179,7 @@ final class CaptureController {
             try await capture.startCapture()
             if let pendingFailure { throw pendingFailure }
             try state.transition(to: .recording)
+            DiagnosticLog.shared.record(.captureStarted)
             report?("Recording display \(display.displayID). Completed segments are kept on this Mac.")
             changed?()
         } catch {
@@ -159,6 +191,7 @@ final class CaptureController {
             if let recorder { _ = try? await recorder.finish(interrupted: true) }
             recorder = nil; sink = nil; clock = nil
             state = SessionState()
+            DiagnosticLog.shared.record(.captureFailed)
             report?(error.localizedDescription); changed?()
         }
     }
@@ -167,10 +200,10 @@ final class CaptureController {
         let now = SegmentedRecorder.hostTime
         do {
             if state.value == .recording {
-                try state.transition(to: .paused); try clock?.pause(at: now); recorder?.pause(at: now)
+                try state.transition(to: .paused); try clock?.pause(at: now); DiagnosticLog.shared.record(.capturePaused); recorder?.pause(at: now)
                 report?("Paused. Paused time will be removed from the recording.")
             } else if state.value == .paused {
-                try state.transition(to: .recording); try clock?.resume(at: now); recorder?.resume(at: now)
+                try state.transition(to: .recording); try clock?.resume(at: now); DiagnosticLog.shared.record(.captureResumed); recorder?.resume(at: now)
                 report?("Recording resumed.")
             }
             changed?()
@@ -188,6 +221,7 @@ final class CaptureController {
             devices?.stopRunning(); devices = nil
             cameraWindow?.close(); cameraWindow = nil
             let package = try await writer.finish(interrupted: interrupted)
+            DiagnosticLog.shared.record(.captureStopped, [.durationMs: elapsed * 1000])
             let export = try await MediaExport.export(package: package, to: exportURL(prefix: interrupted ? "Recovered" : "Clip"))
             completed?(package, export)
             report?(interrupted ? "Interrupted recording retained and exported. Review it before use." : "Saved and checked. Your original take is retained.")

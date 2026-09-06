@@ -12,11 +12,13 @@ let package = Package(
     ],
     targets: [
         .target(name: "ClipsCore"),
-        .target(name: "ClipsMedia", dependencies: ["ClipsCore"]),
+        .target(name: "ClipsModules"),
+        .target(name: "ClipsMedia", dependencies: ["ClipsCore", "ClipsModules"]),
         .target(name: "ClipsFixtures", dependencies: ["ClipsCore"]),
-        .executableTarget(name: "EidosClips", dependencies: ["ClipsCore", "ClipsMedia"],
+        .executableTarget(name: "EidosClips", dependencies: ["ClipsCore", "ClipsMedia", "ClipsModules"],
                           linkerSettings: [.linkedFramework("AVKit")]),
         .executableTarget(name: "ClipsProbe", dependencies: ["ClipsCore", "ClipsMedia", "ClipsFixtures"]),
+        .testTarget(name: "ClipsModulesTests", dependencies: ["ClipsModules"]),
         .testTarget(name: "ClipsCoreTests", dependencies: ["ClipsCore"]),
         .testTarget(name: "ClipsMediaTests", dependencies: ["ClipsCore", "ClipsMedia", "ClipsFixtures"]),
     ]

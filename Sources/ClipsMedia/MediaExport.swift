@@ -1,6 +1,7 @@
 import Foundation
 import AVFoundation
 import ClipsCore
+import ClipsModules
 
 public enum MediaExport {
     /// Decode the entire segment. Metadata alone is insufficient evidence of a good file.
@@ -24,7 +25,10 @@ public enum MediaExport {
     }
 
     /// Exports only manifest-committed, integrity-checked media. Originals are untouched.
-    public static func export(package: URL, to destination: URL, trim: ClosedRange<Double>? = nil) async throws -> URL {
+    public static func export(package: URL, to destination: URL, trim: ClosedRange<Double>? = nil, recipe: EditRecipe? = nil, progress: @escaping (Double) -> Void = { _ in }) async throws -> URL {
+        let began = ProcessInfo.processInfo.systemUptime
+        DiagnosticLog.shared.record(.exportStarted)
+        try Task.checkCancellation()
         let store = try RecordingStore(open: package)
         let segments = try store.verifiedSegments()
         guard segments.contains(where: { $0.kind == .video }) else {
@@ -42,6 +46,7 @@ public enum MediaExport {
             }
             var end = 0.0
             for part in parts {
+                try Task.checkCancellation()
                 let url = try store.segmentURL(part.file)
                 guard try decodedSamples(at: url, kind: kind) > 0 else { throw ClipsError.media("Empty segment.") }
                 let asset = AVURLAsset(url: url)
@@ -61,6 +66,15 @@ public enum MediaExport {
                 let mix = AVMutableAudioMixInputParameters(track: target)
                 mixes.append(mix)
             }
+        }
+        if let recipe {
+            try recipe.validate(duration: composition.duration.seconds)
+            var end = composition.duration.seconds
+            for range in recipe.ranges.reversed() {
+                if end > range.end { composition.removeTimeRange(CMTimeRange(start: CMTime(seconds: range.end, preferredTimescale: 60_000), duration: CMTime(seconds: end - range.end, preferredTimescale: 60_000))) }
+                end = range.start
+            }
+            if end > 0 { composition.removeTimeRange(CMTimeRange(start: .zero, duration: CMTime(seconds: end, preferredTimescale: 60_000))) }
         }
         guard let exporter = AVAssetExportSession(asset: composition, presetName: AVAssetExportPresetHighestQuality) else {
             throw ClipsError.media("MP4 export is unavailable.")
@@ -89,12 +103,22 @@ public enum MediaExport {
             }
             let mix = AVMutableAudioMix(); mix.inputParameters = mixes; exporter.audioMix = mix
         }
-        await exporter.export()
+        let monitor = Task {
+            while !Task.isCancelled {
+                progress(Double(exporter.progress))
+                do { try await Task.sleep(nanoseconds: 200_000_000) } catch { return }
+            }
+        }
+        defer { monitor.cancel() }
+        await withTaskCancellationHandler(operation: { await exporter.export() }, onCancel: { exporter.cancelExport() })
+        try Task.checkCancellation()
         guard exporter.status == .completed else { throw exporter.error ?? ClipsError.media("Export did not complete.") }
         guard try decodedSamples(at: temporary) > 0 else { throw ClipsError.media("Export contains no video.") }
         if !mixes.isEmpty { _ = try decodedSamples(at: temporary, kind: .microphone) }
         let handle = try FileHandle(forWritingTo: temporary); try handle.synchronize(); try handle.close()
         try FileManager.default.moveItem(at: temporary, to: destination)
+        progress(1)
+        DiagnosticLog.shared.record(.exportCompleted, [.durationMs: (ProcessInfo.processInfo.systemUptime - began) * 1000])
         return destination
     }
 }

@@ -2,23 +2,33 @@ import AppKit
 import SwiftUI
 import AVKit
 import ClipsCore
+import ClipsModules
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let model = ClipsModel()
     var window: NSWindow!
     var statusItem: NSStatusItem!
+    var hud: NSPanel!
+    var lastPhase: CaptureState = .idle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1040, height: 780),
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 420, height: 440),
                           styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
         window.title = "Eidos Clips"; window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true; window.isReleasedWhenClosed = false
         window.backgroundColor = NSColor(red: 0.075, green: 0.078, blue: 0.086, alpha: 1)
         window.appearance = NSAppearance(named: .darkAqua)
-        window.contentMinSize = NSSize(width: 880, height: 640)
+        window.contentMinSize = NSSize(width: 420, height: 440)
         window.contentView = NSHostingView(rootView: ClipsView(model: model))
         window.center()
+        hud = NSPanel(contentRect: CGRect(x: 0, y: 0, width: 390, height: 102), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        hud.isReleasedWhenClosed = false; hud.isOpaque = false; hud.backgroundColor = .clear
+        hud.level = NSWindow.Level(rawValue: NSWindow.Level.floating.rawValue + 1)
+        hud.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]; hud.isMovableByWindowBackground = true
+        hud.contentView = NSHostingView(rootView: RecordingHUD(model: model, drawing: model.drawing))
+        hud.center()
+        model.configureWindow = { [weak self] in self?.resizeWindow() }
         model.showWindow = { [weak self] in self?.showWindow() }
         model.stateChanged = { [weak self] in self?.updateStatus() }
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -40,12 +50,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateStatus(); showWindow()
         if CommandLine.arguments.contains("--ui-smoke") { Task { await runUISmoke() } }
     }
-    @objc func showWindow() { window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true) }
+    @objc func showWindow() { resizeWindow(); window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true) }
     @objc func pauseRecording() { model.pause() }
     @objc func stopRecording() { model.stop() }
+    func resizeWindow() {
+        let compact = model.page == .record
+        window.contentMinSize = compact ? NSSize(width: 420, height: 440) : NSSize(width: 880, height: 640)
+        window.setContentSize(compact ? NSSize(width: 420, height: 440) : NSSize(width: 1040, height: 780))
+    }
     func updateStatus() {
+        if model.phase != lastPhase {
+            if model.phase == .recording && lastPhase == .preparing { window.orderOut(nil); hud.orderFrontRegardless() }
+            if model.phase == .idle { hud.orderOut(nil); if model.page == .record { showWindow() } }
+            lastPhase = model.phase
+        }
         statusItem.button?.title = model.phase == .recording ? "● Clips" : model.phase == .paused ? "Ⅱ Clips" : "Clips"
     }
+    func applicationWillTerminate(_ notification: Notification) { DiagnosticLog.shared.flush() }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         if model.busy { model.notice = "Wait for this export to finish, then quit."; return .terminateCancel }
         guard model.capture.state.value != .idle else { return .terminateNow }
@@ -67,16 +88,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard model.canRecord, model.phase == .idle, window.isVisible else { throw ClipsError.invalidState("App did not launch idle.") }
             try render(output.appendingPathComponent("ui-record.png"))
             guard let clip = model.readClip(package) else { throw ClipsError.invalidPackage("UI fixture was unreadable.") }
-            model.clips = [clip]; model.page = .library
+            model.clips = [clip]; model.page = .library; resizeWindow()
             try await Task.sleep(nanoseconds: 1_000_000_000)
             try render(output.appendingPathComponent("ui-library.png"))
             model.openReview(package: package, export: movie)
             model.trimming = true; model.trimStart = 0.2; model.trimEnd = max(0.3, model.duration - 0.2)
             try await Task.sleep(nanoseconds: 1_000_000_000)
             try render(output.appendingPathComponent("ui-review.png"))
-            window.setContentSize(NSSize(width: 880, height: 640)); model.page = .record
+            model.page = .record; resizeWindow()
             try await Task.sleep(nanoseconds: 500_000_000)
             try render(output.appendingPathComponent("ui-compact.png"))
+            model.phase = .recording; hud.orderFrontRegardless()
+            try await Task.sleep(nanoseconds: 500_000_000)
+            try render(output.appendingPathComponent("ui-hud.png"), view: hud.contentView)
+            model.phase = .idle; hud.orderOut(nil)
             let evidence: [String: Any] = ["uiLaunched": true, "hardwareValidated": false,
                 "screens": ["record", "library", "review", "compact"],
                 "sourceCommit": ProcessInfo.processInfo.environment["GITHUB_SHA"] ?? "local"]
@@ -87,12 +112,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             FileHandle.standardError.write(Data((error.localizedDescription + "\n").utf8)); exit(1)
         }
     }
-    func render(_ destination: URL) throws {
-        guard let view = window.contentView else { throw ClipsError.invalidState("No native content view.") }
+    func render(_ destination: URL, view supplied: NSView? = nil) throws {
+        guard let view = supplied ?? window.contentView else { throw ClipsError.invalidState("No native content view.") }
         view.layoutSubtreeIfNeeded(); view.displayIfNeeded()
         guard let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { throw ClipsError.invalidState("No window bitmap.") }
         view.cacheDisplay(in: view.bounds, to: bitmap)
-        guard let png = bitmap.representation(using: .png, properties: [:]), png.count > 10_000 else {
+        guard let png = bitmap.representation(using: .png, properties: [:]), png.count > 2_000 else {
             throw ClipsError.invalidState("The native window rendering was empty.")
         }
         try png.write(to: destination)

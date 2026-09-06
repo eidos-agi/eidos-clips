@@ -33,6 +33,7 @@ fi
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp .build/release/EidosClips "$app/Contents/MacOS/EidosClips"
 cp packaging/Info.plist "$app/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Add :ClipsSourceCommit string $(git rev-parse HEAD)" "$app/Contents/Info.plist"
 swift scripts/create-icon.swift "$stage/Clips.iconset"
 iconutil -c icns "$stage/Clips.iconset" -o "$app/Contents/Resources/Clips.icns"
 if [[ "$kind" == development ]]; then

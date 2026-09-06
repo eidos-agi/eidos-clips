@@ -15,6 +15,9 @@ enum ClipsStyle {
 struct ClipsView: View {
     @ObservedObject var model: ClipsModel
     var body: some View {
+        Group { if model.page == .record { CapturePanel(model: model) } else { studio } }
+    }
+    private var studio: some View {
         HStack(spacing: 0) {
             sidebar.frame(width: 196)
             Rectangle().fill(ClipsStyle.line).frame(width: 1)
@@ -45,6 +48,8 @@ struct ClipsView: View {
                         if model.busy || model.phase == .finalizing || model.phase == .preparing { ProgressView().controlSize(.small) }
                         else { Image(systemName: "info.circle").foregroundStyle(ClipsStyle.muted) }
                         Text(notice).font(.system(size: 12)).textSelection(.enabled)
+                        if model.busy { ProgressView(value: model.jobProgress).frame(width: 70); Button("Cancel") { model.cancelJob() } }
+                        if model.lastTrashed != nil { Button("Undo move") { model.restoreLastTrash() } }
                         Spacer(minLength: 10)
                         Button { model.notice = nil } label: { Image(systemName: "xmark").font(.system(size: 10)) }
                             .buttonStyle(.plain).accessibilityLabel("Dismiss message")
@@ -78,6 +83,7 @@ struct ClipsView: View {
                     Text("Made here. Kept here.").font(.system(size: 11, weight: .medium))
                 }
                 Text("Your recordings stay on this Mac.").font(.system(size: 11)).foregroundStyle(ClipsStyle.muted).lineSpacing(4)
+                Button("Save diagnostic report") { model.diagnosticReport() }.font(.system(size: 11)).buttonStyle(.plain)
                 Button { model.showFiles() } label: {
                     Label("Open recordings folder", systemImage: "folder").font(.system(size: 11))
                 }.buttonStyle(.plain).foregroundStyle(ClipsStyle.muted)
@@ -267,11 +273,12 @@ struct ClipsView: View {
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(ClipsStyle.line))
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Label("Trim your clip", systemImage: "scissors").font(.system(size: 13, weight: .medium))
+                    Label("Trim & cut", systemImage: "scissors").font(.system(size: 13, weight: .medium))
                     Spacer()
-                    Toggle("Trim", isOn: $model.trimming).labelsHidden().toggleStyle(.switch).controlSize(.small).disabled(model.busy)
+                    Toggle("Trim", isOn: $model.trimming).labelsHidden().toggleStyle(.switch).controlSize(.small).disabled(model.busy || !model.modulesEnabled)
                 }
                 if model.trimming && model.duration > 0.1 {
+                    Picker("Selection", selection: $model.removeSelection) { Text("Keep selection").tag(false); Text("Remove selection").tag(true) }.pickerStyle(.segmented)
                     HStack(spacing: 22) {
                         VStack(alignment: .leading) {
                             Text("START  \(ClipsModel.trimTime(model.trimStart))").font(.system(size: 10, weight: .medium, design: .monospaced))
@@ -284,13 +291,15 @@ struct ClipsView: View {
                                 .accessibilityLabel("Trim end")
                         }
                     }.disabled(model.busy)
-                    Text("Exporting \(ClipsModel.trimTime(model.trimEnd - model.trimStart)). Your full recording stays untouched.")
+                    Text("Exporting \(ClipsModel.trimTime(model.removeSelection ? model.duration - (model.trimEnd - model.trimStart) : model.trimEnd - model.trimStart)). Your full recording stays untouched.")
                         .font(.system(size: 11)).foregroundStyle(ClipsStyle.muted)
                 } else {
                     Text("Keep the good part. Your original stays exactly as it is.").font(.system(size: 11)).foregroundStyle(ClipsStyle.muted)
                 }
             }.padding(18).background(ClipsStyle.surface, in: RoundedRectangle(cornerRadius: 10))
 
+            TextField("Notes for this clip", text: $model.notes, axis: .vertical).lineLimit(2...4).textFieldStyle(.roundedBorder)
+            HStack { Button("Save notes") { model.saveNotes() }; Button("Save verified copy…") { model.saveCopy() } }.buttonStyle(QuietButton()).disabled(model.busy)
         }
     }
     private var reviewActions: some View {
@@ -327,7 +336,7 @@ struct ClipTile: View {
                     else { Text("On this Mac") }
                 }.font(.system(size: 10)).foregroundStyle(ClipsStyle.muted)
             }.contentShape(Rectangle())
-        }.buttonStyle(.plain).task(id: clip.id) { image = await model.loadThumbnail(clip) }
+        }.buttonStyle(.plain).contextMenu { Button("Move to Recently Deleted") { model.trash(clip) }; Button("Show original") { NSWorkspace.shared.activateFileViewerSelecting([clip.package]) } }.task(id: clip.id) { image = await model.loadThumbnail(clip) }
     }
 }
 

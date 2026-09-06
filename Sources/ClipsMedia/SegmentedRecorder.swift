@@ -2,6 +2,7 @@ import Foundation
 import AVFoundation
 import CoreMedia
 import ClipsCore
+import ClipsModules
 
 /// Finalized, independently readable track segments. All writer work is serialized.
 /// The callback-facing enqueue is bounded and never blocks an audio callback.
@@ -55,7 +56,7 @@ public final class SegmentedRecorder: @unchecked Sendable {
             let report = !overloadReported
             overloadReported = true
             ingressLock.unlock()
-            if report { queue.async { self.fail(ClipsError.media("Capture could not keep up. Completed media was retained.")) } }
+            if report { DiagnosticLog.shared.record(.queueOverload, [.queueDepth: 64]); queue.async { self.fail(ClipsError.media("Capture could not keep up. Completed media was retained.")) } }
             return
         }
         queue.async {
@@ -191,6 +192,7 @@ public final class SegmentedRecorder: @unchecked Sendable {
         guard try MediaExport.decodedSamples(at: part.url, kind: part.kind) > 0 else {
             throw ClipsError.media("The saved segment cannot be decoded.")
         }
+        DiagnosticLog.shared.record(.segmentCommitted, [.durationMs: (part.end - part.start) * 1000])
         try store.commit(file: part.url, kind: part.kind, start: part.start, duration: part.end - part.start)
     }
 
