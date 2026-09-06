@@ -6,6 +6,12 @@ import ClipsFixtures
 import ClipsModules
 
 final class MediaTests: XCTestCase {
+    func testSyntheticAudioMeterIsFiniteAndVideoIsUnavailable() throws {
+        let sample = try SyntheticSamples.audio(frame: 0, time: 100, channels: 2, frequency: 440)
+        let level = try XCTUnwrap(AudioMeter.decibels(sample))
+        XCTAssertGreaterThan(level, -50); XCTAssertLessThan(level, 0)
+        XCTAssertNil(AudioMeter.decibels(try SyntheticSamples.video(frame: 0, time: 100)))
+    }
     func testRequestedAudioCannotSilentlyDisappear() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

@@ -87,6 +87,8 @@ def main():
     remote = git(args.repo, 'remote', 'get-url', 'origin')
     if remote not in ('https://github.com/eidos-agi/eidos-clips.git', 'https://github.com/eidos-agi/eidos-clips', 'git@github.com:eidos-agi/eidos-clips.git'):
         raise ValueError('Origin is not the Eidos Clips repository')
+    if (args.outbox / 'Sent').is_symlink():
+        raise ValueError('Sent receipt directory must not be a link')
     branch = 'diagnostics/local-reports'
     git(args.repo, 'fetch', 'origin', 'main')
     exists = git(args.repo, 'ls-remote', '--heads', 'origin', branch)
@@ -131,7 +133,7 @@ def main():
                     file.rename(destination)
             print(f'Published and verified https://github.com/eidos-agi/eidos-clips/commit/{sha}')
         finally:
-            git(args.repo, 'worktree', 'remove', str(worktree))
+            git(args.repo, 'worktree', 'remove', '--force', str(worktree))
 
 
 if __name__ == '__main__':

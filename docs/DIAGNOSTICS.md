@@ -1,5 +1,15 @@
 # Structured diagnostics and repository feedback
 
+## Implemented packet and transport
+
+`Sources/ClipsModules/Diagnostics.swift` defines the actual version-1 schema. The envelope is `schemaVersion`, `reportID`, `runID`, `sourceCommit`, `hardwareValidated:false`, and `records`. Each record has an allowlisted event, sequence, relative milliseconds, optional operation/recording UUID and an allowlisted numeric metrics dictionary. There is no arbitrary string payload API. The larger examples/coverage table below are the target design, not fields currently permitted by the public validator.
+
+Local JSONL writes occur on a utility queue, flush every second and fsync; the last unflushed second may be lost on a crash. Ingress/recent buffers are bounded. Explicit report creation and normal termination flush pending records. The implemented caps use decimal bytes: 10,000,000 per log, approximately 100,000,000 total, seven days, 2,048 recent records, 20 pending reports, 5,000,000 bytes per report.
+
+The outbox is `~/Movies/Eidos Clips/Diagnostic Outbox`, independent of a custom recording root. The app never holds a GitHub token. `scripts/diagnostics-agent.py --repo PATH --publish` is the local-agent publication path. Its tests exercise real local Git worktrees, branch publication, idempotent retry and collision refusal against a bare fixture repository; no GitHub diagnostic report was uploaded by those tests. Actual local-agent credentials and a real incident remain needed for a production feedback cycle.
+
+
+
 > **Implementation update — September 6, 2026:** Executable code now implements the compact capture, modular tools, local drawing, native iPad companion, editing/destination and diagnostic paths described in [BUILD-PLAN.md](BUILD-PLAN.md). Use [FEATURE-MAP.md](FEATURE-MAP.md) for current feature status and [BUILD-REVIEW.md](BUILD-REVIEW.md) for exact proof. Historical “missing/proposed” statements below describe the earlier baseline unless listed as still open in that ledger. Physical and signing acceptance are not implied.
 
 

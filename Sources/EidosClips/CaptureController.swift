@@ -9,6 +9,18 @@ import CoreImage
 final class CaptureSink: NSObject, SCStreamOutput, SCStreamDelegate, AVCaptureAudioDataOutputSampleBufferDelegate {
     let recorder: SegmentedRecorder
     let failed: (Error) -> Void
+    let meter: (TrackKind, Double?) -> Void
+    private let meterLock = NSLock()
+    private var meterTime: [TrackKind: Double] = [:]
+    private func measure(_ sample: CMSampleBuffer, kind: TrackKind) {
+        let now = ProcessInfo.processInfo.systemUptime
+        meterLock.lock()
+        let previous = meterTime[kind]
+        guard now - (previous ?? 0) >= 0.1 else { meterLock.unlock(); return }
+        meterTime[kind] = now; meterLock.unlock()
+        if previous == nil { DiagnosticLog.shared.record(.inputSummary, [kind == .microphone ? .microphone : .systemAudio: 1, .count: 1]) }
+        meter(kind, AudioMeter.decibels(sample))
+    }
     private var latestScreen: CMSampleBuffer?
     private var cadence: DispatchSourceTimer?
     private let previewLock = NSLock()
@@ -39,9 +51,9 @@ final class CaptureSink: NSObject, SCStreamOutput, SCStreamDelegate, AVCaptureAu
     }
     func stopCadence() { cadence?.cancel(); cadence = nil }
     deinit { cadence?.cancel() }
-    init(recorder: SegmentedRecorder, failed: @escaping (Error) -> Void) { self.recorder = recorder; self.failed = failed }
+    init(recorder: SegmentedRecorder, meter: @escaping (TrackKind, Double?) -> Void, failed: @escaping (Error) -> Void) { self.recorder = recorder; self.meter = meter; self.failed = failed }
     func stream(_ stream: SCStream, didOutputSampleBuffer sample: CMSampleBuffer, of type: SCStreamOutputType) {
-        if type == .audio { recorder.append(sample, kind: .systemAudio); return }
+        if type == .audio { measure(sample, kind: .systemAudio); recorder.append(sample, kind: .systemAudio); return }
         guard type == .screen, let attachments = CMSampleBufferGetSampleAttachmentsArray(sample, createIfNecessary: false)
             as? [[SCStreamFrameInfo: Any]],
               attachments.first?[.status] as? Int == SCFrameStatus.complete.rawValue else { incompleteCount += 1; return }
@@ -63,6 +75,7 @@ final class CaptureSink: NSObject, SCStreamOutput, SCStreamDelegate, AVCaptureAu
     }
     func stream(_ stream: SCStream, didStopWithError error: Error) { failed(error) }
     func captureOutput(_ output: AVCaptureOutput, didOutput sample: CMSampleBuffer, from connection: AVCaptureConnection) {
+        measure(sample, kind: .microphone)
         recorder.append(sample, kind: .microphone)
     }
 }
@@ -74,6 +87,7 @@ final class CaptureController {
     var changed: (() -> Void)?
     var report: ((String) -> Void)?
     var completed: ((URL) -> Void)?
+    var audioLevel: ((TrackKind, Double?) -> Void)?
     var prepared: ((UInt32, CaptureRegion?) -> Void)?
     var packageReady: ((URL) -> Void)?
     var preview: ((Data) -> Void)? { didSet { sink?.preview = preview } }
@@ -133,7 +147,7 @@ final class CaptureController {
             recorder = writer
             DiagnosticLog.shared.setSession(UUID(uuidString: writer.packageURL.deletingPathExtension().lastPathComponent))
             packageReady?(writer.packageURL)
-            let callback = CaptureSink(recorder: writer) { [weak self] error in
+            let callback = CaptureSink(recorder: writer, meter: { [weak self] kind, level in Task { @MainActor in self?.audioLevel?(kind, level) } }) { [weak self] error in
                 Task { @MainActor in await self?.interrupt(error) }
             }
             sink = callback; callback.preview = preview

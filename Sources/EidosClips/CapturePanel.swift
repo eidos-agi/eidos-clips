@@ -130,7 +130,11 @@ struct RecordingHUD: View {
     @State private var showDevice = false
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 14) {
+            HStack(spacing: 10) {
+                HStack(alignment: .bottom, spacing: 3) {
+                    if model.microphone { meter(model.micLevel, name: "Microphone") }
+                    if model.systemAudio { meter(model.systemLevel, name: "Mac audio") }
+                }.frame(height: 20)
                 Circle().fill(model.phase == .paused ? .yellow : ClipsStyle.accent).frame(width: 8, height: 8)
                 Text(ClipsModel.time(model.elapsed)).font(.system(size: 16, weight: .medium, design: .monospaced)).frame(width: 65)
                 Button { showDevice.toggle() } label: { Image(systemName: "ipad") }.help("Connect drawing device").disabled(!model.modulesEnabled)
@@ -159,4 +163,10 @@ struct RecordingHUD: View {
             }
         }.background(ClipsStyle.surface).foregroundStyle(.white).preferredColorScheme(.dark).clipShape(RoundedRectangle(cornerRadius: 14))
     }
+    private func meter(_ level: Double?, name: String) -> some View {
+        Capsule().fill(level == nil ? ClipsStyle.muted : (level! > -1 ? ClipsStyle.accent : Color.green))
+            .frame(width: 3, height: max(3, (level.map { ($0 + 60) / 60 } ?? 0) * 20))
+            .accessibilityLabel(name + " level").accessibilityValue(level.map { String(format: "%.0f decibels", $0) } ?? "Unavailable")
+    }
+
 }

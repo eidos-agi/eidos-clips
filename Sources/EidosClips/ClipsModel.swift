@@ -57,6 +57,8 @@ final class ClipsModel: ObservableObject {
     @Published var cameraID: String?
     @Published var microphoneDevices: [AVCaptureDevice] = []
     @Published var cameraDevices: [AVCaptureDevice] = []
+    @Published var micLevel: Double?
+    @Published var systemLevel: Double?
     @Published var microphone = true
     @Published var systemAudio = false
     @Published var camera = false
@@ -105,12 +107,15 @@ final class ClipsModel: ObservableObject {
             self.synchronizeDevice()
         }
         DiagnosticLog.shared.record(.appLaunch)
+        capture.audioLevel = { [weak self] kind, level in if kind == .microphone { self?.micLevel = level } else { self?.systemLevel = level } }
         capture.packageReady = { [weak self] in self?.annotationPackage = $0; self?.annotationEvents = [] }
         capture.prepared = { [weak self] displayID, region in self?.prepareDrawing(displayID: displayID, region: region) }
         annotationArchive.failed = { [weak self] in Task { @MainActor in self?.notice = "Drawing sidecar could not be saved. Recorded video is retained." } }
         drawing.onRejected = { [weak self] in self?.nearby.deactivate(); self?.drawing.setInteractive(false) }
         drawing.onAccepted = { [weak self] operation in
-            guard let self, self.phase == .recording, self.annotationEvents.count < 20_000 else { return }
+            guard let self else { return }
+            if self.nearby.approved && (operation.kind == .clear || operation.kind == .undo) { self.synchronizeDevice() }
+            guard self.phase == .recording, self.annotationEvents.count < 20_000 else { return }
             self.annotationEvents.append(AnnotationArchive.TimedInk(elapsed: self.capture.elapsed, operation: operation))
             if operation.kind != .append { self.saveAnnotations() }
         }
@@ -173,6 +178,7 @@ final class ClipsModel: ObservableObject {
     func start() {
         guard canRecord else { return }
         player.pause(); page = .record; notice = nil
+        micLevel = nil; systemLevel = nil
         DiagnosticLog.shared.record(.commandAccepted)
         drawing.reset()
         if nearby.approved { _ = drawing.useRemote(); synchronizeDevice() }
@@ -246,7 +252,10 @@ final class ClipsModel: ObservableObject {
                 try FileManager.default.createDirectory(at: cache, withIntermediateDirectories: true)
                 let movie = cache.appendingPathComponent(input.sha256 + ".mp4")
                 let checksum = cache.appendingPathComponent(input.sha256 + ".sha256")
-                if !(FileManager.default.fileExists(atPath: movie.path) && (try? String(contentsOf: checksum)) == (try? RecordingStore.digest(movie))) {
+                let expected = try? String(contentsOf: checksum)
+                let actual = try? RecordingStore.digest(movie)
+                let cacheValid = expected?.count == 64 && actual != nil && expected == actual
+                if !cacheValid {
                     try? FileManager.default.removeItem(at: movie)
                     _ = try await exportAdapter.run(package: clip.package, request: request, to: movie) { value in Task { @MainActor in self.jobProgress = value } }
                     try RecordingStore.digest(movie).write(to: checksum, atomically: true, encoding: .utf8)
@@ -415,6 +424,7 @@ final class ClipsModel: ObservableObject {
     func importCaptions() {
         guard let selected, canRecord, let processor = registry.processor(captionProcessor.descriptor.id) else { return }
         let panel = NSOpenPanel(); panel.canChooseDirectories = false; panel.allowsMultipleSelection = false
+        panel.allowedContentTypes = [UTType(filenameExtension: "srt") ?? .plainText, UTType(filenameExtension: "vtt") ?? .plainText]
         panel.message = "Choose an SRT or WebVTT file. Caption text stays with this recording."
         guard panel.runModal() == .OK, let source = panel.url else { return }
         busy = true
@@ -423,6 +433,7 @@ final class ClipsModel: ObservableObject {
             let output = selected.package.appendingPathComponent(".captions-\(UUID()).vtt")
             defer { try? FileManager.default.removeItem(at: output) }
             do {
+                guard let bytes = try FileManager.default.attributesOfItem(atPath: source.path)[.size] as? NSNumber, bytes.intValue <= 1_000_000 else { throw ModuleError.invalid("Use a caption file under 1 MB.") }
                 let request = JobRequest(adapter: processor.descriptor, input: ArtifactReference(id: selected.id, sha256: try RecordingStore.digest(source), revision: 1))
                 _ = try await processor.process(source, request: request, to: output)
                 let cues = try Captions.parse(Data(contentsOf: output))

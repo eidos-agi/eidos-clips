@@ -46,6 +46,14 @@ import UIKit
             default: break
             }
         }
+        if ProcessInfo.processInfo.arguments.contains("--ui-smoke-drawing") {
+            var scene = AnnotationScene()
+            let stroke = InkStroke(tool: .pen, color: .coral, points: [CanvasPoint(x: 0.2, y: 0.5), CanvasPoint(x: 0.4, y: 0.2), CanvasPoint(x: 0.75, y: 0.6)])
+            try? scene.apply(InkOperation(epoch: scene.epoch, sequence: 1, kind: .begin, stroke: stroke))
+            try? scene.apply(InkOperation(epoch: scene.epoch, sequence: 2, kind: .end))
+            approved = true; status = "Synthetic drawing fixture"
+            canvas = RemoteCanvas(snapshot: scene.snapshot, aspectRatio: 16 / 9, acceptsInput: true)
+        }
     }
     func send(_ kind: InkOperation.Kind, stroke: InkStroke? = nil) {
         guard let canvas, canvas.acceptsInput, approved else { return }
@@ -111,12 +119,16 @@ struct PencilSurface: UIViewRepresentable {
     weak var model: TabletModel?
     private var stroke: InkStroke?
     private var epoch: UUID?
+    private var revision = -1
     private var localStrokes: [InkStroke] = []
     func sync() {
         if epoch != model?.canvas?.snapshot.epoch {
             epoch = model?.canvas?.snapshot.epoch; stroke = nil; localStrokes = model?.canvas?.snapshot.strokes ?? []
         }
         if model?.canvas?.acceptsInput != true { stroke = nil }
+        if revision != model?.canvas?.snapshot.revision, stroke == nil {
+            revision = model?.canvas?.snapshot.revision ?? -1; localStrokes = model?.canvas?.snapshot.strokes ?? []
+        }
     }
     override func draw(_ rect: CGRect) {
         guard let model, let context = UIGraphicsGetCurrentContext() else { return }
@@ -158,6 +170,7 @@ struct PencilSurface: UIViewRepresentable {
             let batch = Array(points[offset..<min(points.count, offset + 64)])
             model?.send(.append, stroke: InkStroke(id: stroke.id, tool: stroke.tool, color: stroke.color, width: stroke.width, points: batch))
         }
+        guard stroke.points.count + points.count <= 100_000, localStrokes.count <= 2000 else { model?.link.stop(); return }
         stroke.points.append(contentsOf: points); self.stroke = stroke
         if let index = localStrokes.indices.last { localStrokes[index] = stroke }; setNeedsDisplay()
     }

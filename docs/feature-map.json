@@ -41,8 +41,8 @@
     {
       "id": "C07",
       "feature": "Device pickers, separate meters, test recording",
-      "implementation": "Partial: microphone and camera device menus",
-      "evidenceAndGap": "Device lists need physical checks; meters and quick test playback remain"
+      "implementation": "Partial: device menus and separate recording input meters",
+      "evidenceAndGap": "Meter math has synthetic tests; device levels and quick preflight playback remain unqualified"
     },
     {
       "id": "C08",

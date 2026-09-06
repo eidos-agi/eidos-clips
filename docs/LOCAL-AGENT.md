@@ -2,6 +2,8 @@
 
 Build the current `main` of `eidos-agi/eidos-clips` into a company-signed, notarized ZIP using the existing Eidos signing Mac. Return the artifact and verification evidence to Daniel. The native application and release scripts are committed; actual company signing and physical capture validation are still pending.
 
+Use [BUILD-PLAN.md](BUILD-PLAN.md) for the new iPad companion and diagnostic publisher instructions. [BUILD-REVIEW.md](BUILD-REVIEW.md) records current native checkpoints.
+
 Read [FEATURE-MAP.md](FEATURE-MAP.md) for user paths and known gaps, then [SIGNING.md](SIGNING.md), [IMPLEMENTATION.md](IMPLEMENTATION.md), and [VALIDATION.md](VALIDATION.md) before executing. The signing reference is [eidos-desktop-app-builder](https://github.com/eidos-agi/eidos-desktop-app-builder/tree/958661919e65bb8f066cdcee73a0e34293eaff1e), especially its identity matrix and credential-custody instructions. Use applicable local agent instructions as well.
 
 ## 1. Fetch and isolate the exact source

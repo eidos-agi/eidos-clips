@@ -1,6 +1,12 @@
 import Foundation
 import MultipeerConnectivity
 
+private final class PeerIngress: @unchecked Sendable {
+    private let lock = NSLock()
+    private var pending = 0
+    func claim() -> Bool { lock.lock(); defer { lock.unlock() }; guard pending < 32 else { return false }; pending += 1; return true }
+    func release() { lock.lock(); pending -= 1; lock.unlock() }
+}
 /// One ephemeral nearby device, reliable bounded messages, encrypted transport plus an authenticated app channel.
 /// No recording commands, shell, filesystem or account authority are part of this protocol.
 @MainActor public final class PeerLink: NSObject, MCSessionDelegate, MCNearbyServiceAdvertiserDelegate, MCNearbyServiceBrowserDelegate {
@@ -21,6 +27,7 @@ import MultipeerConnectivity
     private var role = false
     private var messageWindow = ProcessInfo.processInfo.systemUptime
     private var messageCount = 0
+    private nonisolated let ingress = PeerIngress()
     public override init() { super.init() }
     public func start(host: Bool) {
         stop(); role = host; channel = PairingChannel(isHost: host)
@@ -73,8 +80,9 @@ import MultipeerConnectivity
         }
     }
     nonisolated public func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {
-        guard data.count <= 500_000 else { return }
+        guard data.count <= 500_000, ingress.claim() else { return }
         Task { @MainActor in
+            defer { ingress.release() }
             guard self.session === session, chosen == peerID, let channel else { return }
             let now = ProcessInfo.processInfo.systemUptime
             if now - messageWindow > 1 { messageWindow = now; messageCount = 0 }; messageCount += 1

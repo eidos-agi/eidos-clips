@@ -39,8 +39,11 @@ import ClipsModules
     func connect() { sharingPreview = false; link.start(host: true) }
     func synchronize(_ canvas: RemoteCanvas) {
         activate(epoch: canvas.snapshot.epoch)
-        guard approved, let data = try? JSONEncoder().encode(canvas), data.count <= 250_000 else { return }
-        try? link.send(.init(.canvas, payload: data))
+        guard approved else { return }
+        guard let data = try? JSONEncoder().encode(canvas), data.count <= 250_000 else {
+            deactivate(); status = "Drawing is too large to synchronize. Clear the Mac drawing before pairing again."; return
+        }
+        do { try link.send(.init(.canvas, payload: data)) } catch { deactivate() }
     }
     func sendPreview(_ data: Data) {
         guard approved, sharingPreview, !awaitingPreview, data.count <= 240_000 else { return }

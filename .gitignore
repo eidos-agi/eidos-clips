@@ -7,3 +7,8 @@ dist/
 *.mp4
 *.mov
 __pycache__/
+*.jsonl
+*.srt
+*.vtt
+*.wav
+*.m4a

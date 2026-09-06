@@ -3,7 +3,21 @@
 > **Implementation update — September 6, 2026:** Executable code now implements the compact capture, modular tools, local drawing, native iPad companion, editing/destination and diagnostic paths described in [BUILD-PLAN.md](BUILD-PLAN.md). Use [FEATURE-MAP.md](FEATURE-MAP.md) for current feature status and [BUILD-REVIEW.md](BUILD-REVIEW.md) for exact proof. Historical “missing/proposed” statements below describe the earlier baseline unless listed as still open in that ledger. Physical and signing acceptance are not implied.
 
 
-**Architecture decision requested by Daniel on September 6, 2026; not implemented.** The [current feature map](FEATURE-MAP.md) records the application baseline. This document generalizes the iPad idea: drawing is optional, device input is replaceable, and editing/sharing/processing have separate contracts. An iPad is one adapter, not a dependency of the recorder or the annotation document.
+**Architecture decision requested by Daniel on September 6, 2026; bundled contracts and adapters implemented.** The [current feature map](FEATURE-MAP.md) records the application baseline. This document generalizes the iPad idea: drawing is optional, device input is replaceable, and editing/sharing/processing have separate contracts. An iPad is one adapter, not a dependency of the recorder or the annotation document.
+
+## Registered implementations
+
+| Contract | Bundled adapter | Source |
+|---|---|---|
+| DrawingInputAdapter | PointerDrawingAdapter | `Sources/ClipsModules/Annotation.swift` |
+| DrawingInputAdapter | NearbyDrawingAdapter | `Sources/EidosClips/NearbyDrawingAdapter.swift` |
+| EditProvider | BasicEditProvider | `Sources/ClipsModules/Extensions.swift` |
+| ExportProvider | NativeExportAdapter | `Sources/ClipsMedia/ExportAdapters.swift` |
+| ArtifactProcessor | SubtitleImportProcessor | `Sources/ClipsModules/Captions.swift` |
+| DestinationAdapter | LocalFolderDestination | `Sources/ClipsMedia/ExportAdapters.swift` |
+| DestinationAdapter | LocalWatchDestination | `Sources/ClipsMedia/WatchBundle.swift` |
+
+Registration includes concrete protocol instances and capability-checked lookup. The shell obtains edit, processing and destination adapters through the registry. Basic MP4 export remains part of the required application. No third-party process isolation is claimed. Future external modules must pass the containment cases below before loading is enabled.
 
 ## The product must stand on its own
 
@@ -33,7 +47,7 @@ Start with trusted first-party modules and explicit registration in the app. Est
 | Extension host | Compatibility, granted capabilities, operation budgets, registration/health and adapter identity | A manifest's claimed permissions do not enforce isolation by themselves |
 | Diagnostics | Schema validation, host metrics, local evidence and public-report construction | A report-publisher adapter cannot disable sanitization or upload arbitrary raw logs |
 
-The app shell coordinates these owners and offers their actions; it does not hide vendor-specific logic inside CaptureController. The existing `ClipsCore` / `ClipsMedia` / `EidosClips` split is a starting point, not evidence that these boundaries are implemented today.
+The app shell coordinates these owners and offers their actions; it does not hide vendor-specific logic inside CaptureController. `ClipsModules` now adds shared portable contracts to the `ClipsCore` / `ClipsMedia` / `EidosClips` split. See the actual registered implementations below.
 
 ## Live work and completed-artifact work
 
@@ -56,7 +70,7 @@ Optional never means silently wrong: a disconnected pen can stop contributing ne
 
 ## Contracts to introduce as needed
 
-Names below describe intended interfaces/data, not APIs already present in the repository. Use versioned portable wire data only when crossing a process/device boundary; first-party internal calls can remain ordinary Swift types.
+DrawingInputAdapter, AnnotationScene, EditProvider, ExportProvider, ArtifactProcessor and DestinationAdapter are implemented in `Sources/ClipsModules`. CapturePreviewSource, PresentationContribution and DiagnosticPublisher remain conceptual names for narrower currently concrete paths. Use versioned portable wire data only when crossing a process/device boundary; first-party internal calls can remain ordinary Swift types.
 
 | Contract | Inputs and outputs | Important rule |
 |---|---|---|

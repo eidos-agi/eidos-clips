@@ -18,15 +18,15 @@ Poteto's useful idea is to map features by their user entry points, driving step
 
 ## Product overview
 
-| User job | What exists at the baseline | What is missing or needs to change | Detail |
+| User job | Implemented path | Remaining gap | Detail |
 |---|---|---|---|
-| Get ready quickly | Large recording window, display selector, three optional input switches | Compact ready panel, region selector, exact preview, countdown, meters, remembered choices | [Prepare and record](features/record.md) |
-| Stay in control during a take | Pause/resume/finish in app and menu bar; timer; floating camera | Small HUD, include Clips in video, global shortcuts, live input controls, stronger interruption behavior | [Prepare and record](features/record.md) |
-| Draw, with or without a separate device | No annotation subsystem yet | Optional mouse/trackpad drawing; iPad/pen/other inputs through adapters; recorder works with drawing off | [Drawing](features/drawing.md), [iPad adapter](features/ipad-ink.md) |
-| Keep useful work | Segmented originals, checked export, failed/recoverable package discovery | Physical failure evidence, manifest/orphan repair, storage management, safe discard/trash | [Keep and recover](features/recovery.md) |
-| Finish and find it | Playback, title, trim-to-new-MP4, thumbnails, title search, Finder | Saved edit decisions, projects/notes, faster repeat opening, useful library storage controls | [Review and library](features/review.md) |
-| Give it to someone or an agent | Local MP4 and native Share sheet | Verified folder delivery, reusable destinations, local command/event contract; links/transcripts later | [Share and hand off](features/handoff.md) |
-| Trust and diagnose the app | CI tests/probes, development packaging, company signing script | In-app diagnostic files/export, executed signing evidence, clean-Mac install, physical acceptance | [Diagnostics and delivery](features/diagnostics.md) |
+| Get ready quickly | Compact panel, display/region selection, mic/camera device menus, remembered choices, countdown | Preflight preview/test capture, live device changes | [Prepare and record](features/record.md) |
+| Stay in control | Floating strip, pause/finish, include Clips UI, global shortcuts, input meters | Physical interruption and accessibility qualification, live mute/camera controls | [Prepare and record](features/record.md) |
+| Draw with optional devices | Pointer adapter, shared ink/tools, native iPad companion, scoped pairing/preview | Physical Pencil/radio/geometry evidence; other vendor adapters | [Drawing](features/drawing.md), [iPad](features/ipad-ink.md) |
+| Keep useful work | Segmented originals, integrity checks, cache, Recently Deleted/undo | Orphan/manifest repair, full storage policy and physical fault evidence | [Recovery](features/recovery.md) |
+| Finish and find it | Playback, title/notes, trim/cut, captions, search, cancellable exports | Projects, full timeline, transcription/search, persistent job queue | [Review](features/review.md) |
+| Give it to someone | MP4, native Share, verified copy, portable watch folder | Hosted links/access/revoke, comments/reactions, provider integrations | [Handoff](features/handoff.md) |
+| Diagnose and trust it | Typed bounded logs, validated outbox, local Git publisher, native CI, signing scripts | Physical acceptance and actual notarized artifact from signing Mac | [Diagnostics](features/diagnostics.md) |
 
 The primary loop is **prepare → record → finish → review → export or hand off → find later**. Recovery and diagnosis must remain reachable when that loop fails.
 
@@ -40,7 +40,7 @@ The primary loop is **prepare → record → finish → review → export or han
 | C04 | Window selection/capture | Missing | Later than the next brief; still in the wider M2 plan |
 | C05 | Exact capture preview/border | Partial: scoped remote preview during capture | No preflight preview or persistent crop border yet |
 | C06 | Mic, system audio, camera switches before start | Exists: optional mic, Mac audio and camera | Native/synthetic audio checks; real devices unproven |
-| C07 | Device pickers, separate meters, test recording | Partial: microphone and camera device menus | Device lists need physical checks; meters and quick test playback remain |
+| C07 | Device pickers, separate meters, test recording | Partial: device menus and separate recording input meters | Meter math has synthetic tests; device levels and quick preflight playback remain unqualified |
 | C08 | Permission help and recovery | Partial; prompts and text errors exist | No proven denial/retry journey; dedicated readiness view proposed, V01–V03 |
 | C09 | Countdown, cancel preparation, remembered presets | Partial: cancellable three-second countdown and remembered inputs | Demo/Call named presets remain; native compile evidence |
 | R01 | Floating recording HUD and shrink/hide studio | Exists: floating 60-point strip, drawing tools expand it | Native render; main window hides when capture begins |

@@ -29,6 +29,8 @@ jobs:
         run: bash scripts/build-app.sh
       - name: Compile iPad companion for Simulator
         run: bash scripts/build-companion.sh
+      - name: Launch native iPad Simulator companion
+        run: python3 scripts/companion-smoke.py
       - name: Verify development bundle identity and signature
         run: |
           python3 - <<'PY'
