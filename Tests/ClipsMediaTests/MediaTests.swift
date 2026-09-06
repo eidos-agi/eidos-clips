@@ -28,7 +28,7 @@ final class MediaTests: XCTestCase {
         let writer = try SegmentedRecorder(root: root, title: "Synthetic", origin: 100, segmentSeconds: 0.5)
         for frame in 0..<30 {
             writer.append(try SyntheticSamples.video(frame: frame, time: 100 + Double(frame) / 30), kind: .video)
-            try await Task.sleep(nanoseconds: 10_000_000)
+            try await Task.sleep(nanoseconds: 33_333_333)
         }
         let package = try await writer.finish()
         let store = try RecordingStore(open: package)

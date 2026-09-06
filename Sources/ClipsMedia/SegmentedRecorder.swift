@@ -128,7 +128,9 @@ public final class SegmentedRecorder: @unchecked Sendable {
             }
             lastSpaceCheck = mapped
         }
-        let deadline = Date().addingTimeInterval(0.15)
+        // A cold encoder may need more time for its first buffer than steady-state writes.
+        // Work remains on the writer queue and ingress is still bounded.
+        let deadline = Date().addingTimeInterval(current.samples == 0 ? 0.5 : 0.15)
         while !current.input.isReadyForMoreMediaData && current.writer.status == .writing && Date() < deadline {
             Thread.sleep(forTimeInterval: 0.001)
         }
