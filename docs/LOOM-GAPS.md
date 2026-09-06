@@ -23,6 +23,7 @@ Loom's published capabilities span recording, editing, accessible playback, shar
 | O13 | Install, update, and recover reliably | Release script exists; executed clean-install, upgrade/rollback and oldest-OS evidence missing | Stable company identity, saved data/grants, signed updates, explicit supported configurations |
 | O14 | Report a broken or slow experience without detective work | No application diagnostic log or report outbox | Build structured telemetry and the repo feedback loop below with the recorder, not as an afterthought |
 | O15 | Use it from a chosen agent or work system | No user CLI/MCP/events; fixture probe only | Shared capture command contract and durable completion/error events; intelligence can be replaced without rewriting the recorder |
+| O16 | Draw naturally with Apple Pencil while presenting on Mac | No iPad pairing, mapped preview or live ink | Explicitly requested; [Draw from iPad](features/ipad-ink.md) adds a local presentation capability with laser/whiteboard options and physical latency tests |
 
 Loom's [published feature inventory](https://www.loom.com/pricing) also lists content management, recording enhancements and viewer/engagement insights. That is a useful completeness check, not a reason to copy every team administration or monetization feature.
 

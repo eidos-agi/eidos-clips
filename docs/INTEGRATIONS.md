@@ -49,6 +49,12 @@ Prefer authenticated local IPC with peer/code identity checks where available an
 
 No hidden call detection or autonomous always-on capture. A remote agent receives finished artifacts only through an explicitly configured route. Each destination/policy is separate so unrelated projects or accounts do not mix by default.
 
+## iPad drawing companion
+
+The requested [Draw from iPad integration](features/ipad-ink.md) is separate from the M4 coding-agent client. A paired iPad receives only the explicitly selected screen/region preview and can send validated ink operations for that target. It does not inherit recording start/stop, arbitrary Mac input, library access, or upload authority. Separate permission for preview sharing from remembered device pairing; reconnect must not silently share the whole desktop.
+
+Mac owns the session/timeline/target epoch and accepted ink revision. The proposed protocol carries versioned, bounded stroke events plus reliable commit/undo/clear and reconnect snapshots, with encrypted authenticated transport and revocation. Scope changes invalidate stale coordinates. Preview video goes to the iPad; ink returns to the Mac. Keep both contents out of logs and public diagnostic packets. The exact transport and iPadOS app/distribution path need a physical feasibility spike; no remote-control service has been implemented.
+
 ## Completion events
 
 - `recording.ready`: the retained original passed validation and is available for review.

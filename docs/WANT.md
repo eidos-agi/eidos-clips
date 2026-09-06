@@ -16,6 +16,8 @@ See [FEATURE-MAP.md](FEATURE-MAP.md) for current behavior and proof, [LOOM-GAPS.
 
 5. **Close the diagnostic feedback loop.** Daniel also wants enough structured evidence for the local agent to commit useful reports back to this repository so a coding agent can diagnose bottlenecks and regressions. Design coverage includes successful and failed actions, source/build identity, correlated sessions, latency/queue metrics, and a sanitized report outbox. Raw logs/media stay local; the public repo receives validated bounded reports through the existing local agent. The transport and publication setup remain a design to implement, not an active uploader.
 
+6. **Draw from a paired iPad with Apple Pencil.** Daniel wants to annotate while recording from his MacBook Pro, with the drawing visible on the Mac and in the saved video. Add pairing, an accurately mapped selected-area preview, and live ink. Laser/whiteboard modes and a native companion are proposed design choices; compare a Sidecar experiment before committing to the transport. See [features/ipad-ink.md](features/ipad-ink.md) and feature IDs A01–A07. No companion feature code or physical proof exists yet.
+
 ## Do not
 
 - Mark M5 or physical cases passed.

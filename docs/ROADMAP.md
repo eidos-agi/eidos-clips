@@ -30,6 +30,7 @@ M1 is for short internal tests with expendable material. M3 is the everyday work
 | U20 | Build ready panel, scope picker, presets, meters, and permission flow | R12 | Returning-user setup path and denied/missing optional device cases |
 | U21 | Implement scene rendering and display/window/region geometry | U20 | Pixel-inspected exports on mixed-DPI layouts; Clips windows inside the selected scope included per WANT.md and camera present once |
 | U22 | Complete pause/resume, shortcuts, mute/camera-off, and interruption UI | U21 | Static-screen pause, source unplug, Bluetooth change, lock/sleep, keyboard and VoiceOver cases |
+| U23 | Pair iPad/Pencil for live annotation of the Mac capture | U21; diagnostic timing coverage | Compare Sidecar/canvas and companion spike; A-V01–A-V07 prove pairing, selected preview, geometry, latency, saved ink, reconnect and privacy on actual devices |
 | F30 | Add preview, title, trim, export queue, and retained takes | U22 | Frame/duration-checked trim exports; Record again retains earlier recording |
 | F31 | Add small catalog, project/notes search, missing-file and trash handling | F30 | Catalog rebuild from packages; repair stale index; recover an accidental deletion |
 | I40 | Implement destination picker, verified copies, retry queue, and source retention | F31 | Cross-volume/offline/destination-full/restart cases; no false Uploaded or Link ready |
@@ -42,6 +43,8 @@ M1 is for short internal tests with expendable material. M3 is the everyday work
 ## Next executable work
 
 The immediate product slice is [WANT.md](WANT.md): compact ready/HUD, include Clips in video while excluding its audio, region selection with Esc cancel, and diagnostic logging. Extend diagnostics toward the structured report/repo feedback design in [DIAGNOSTICS.md](DIAGNOSTICS.md). Its public-report validator and local Git bridge need their own evidence before automatic publication; raw logs are not repository fixtures. Window selection can follow this slice. Broader opportunities remain for discussion in the feature map.
+
+The requested iPad/Pencil expansion is tracked in U23 and [features/ipad-ink.md](features/ipad-ink.md). Start its narrow physical feasibility experiment once capture geometry and diagnostics are available. A native iPad companion needs separate provisioning; it is not the browser edition or a new full recording product. Do not count synthetic transforms as Pencil/hardware acceptance.
 
 In parallel with that slice, close P00–P03 using the prototype and its CI evidence. Validate the app on a physical Mac and make a two-minute display/microphone recording. Then terminate the process during capture and recover the playable portion. Measure startup, retained duration, A/V alignment, and memory. Record the chosen container/checkpoint design and supported macOS floor. Finish this proof before polishing the library or implementing cloud integrations.
 
