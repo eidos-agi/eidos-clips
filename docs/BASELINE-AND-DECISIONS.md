@@ -4,6 +4,8 @@ Reviewed 2026-09-06. Destination `eidos-agi/eidos-clips` was an empty private re
 
 The assessment comes from source inspection of the native Swift app, browser HTML, build scripts, launchers, README, plist, and bundled executable metadata. The native app was not run in this environment. The earlier browser preview attempt was blocked, so no interactive UI/audio/display behavior is claimed as tested. The plan separates observed implementation choices from risks requiring reproduction.
 
+Update after this historical review: source became public/MIT at `1eaf230`; WANT.md now requests Clips windows included in recorded video. The earlier private-repo and excluded-controls decisions below are superseded. See [FEATURE-MAP.md](FEATURE-MAP.md) for current source status and the revised user paths.
+
 ## Preserve what works conceptually
 
 Keep local files, no required account, a compact native utility, camera overlay, excluded recording controls, pause/resume, system/mic capture, and compatibility with user-owned destinations. Reuse justified code with attribution instead of assuming every component needs replacement. Introduce modules and tests around media/lifecycle risk, without adding a web service or heavyweight desktop runtime.

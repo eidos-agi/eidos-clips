@@ -50,6 +50,8 @@ The first supported target is **Apple Silicon macOS**, with macOS 14 as the prop
 
 ## Read the plan
 
+Start with the [feature map](docs/FEATURE-MAP.md) to see what exists, how to use it, what is verified, and what is missing. The [Loom comparison](docs/LOOM-GAPS.md) captures wider product opportunities; [structured diagnostics](docs/DIAGNOSTICS.md) designs the local-log-to-repo improvement loop.
+
 | Document | Purpose |
 |---|---|
 | [Product and experience](docs/PRODUCT.md) | Users, recording flows, scope, visual direction, and platform boundaries |

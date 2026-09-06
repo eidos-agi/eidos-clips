@@ -2,6 +2,8 @@
 
 This is a first executable slice, not completion of M0–M5. The original milestone gates remain in [ROADMAP.md](ROADMAP.md) and [VALIDATION.md](VALIDATION.md).
 
+Current user paths and evidence are mapped in [FEATURE-MAP.md](FEATURE-MAP.md). The include-Clips policy in WANT.md is a requested change; the exclusion behavior described below is the current baseline, not the desired future behavior.
+
 ## What exists
 
 - A SwiftUI macOS interface hosted by AppKit and built with SwiftPM: selected-display recording through ScreenCaptureKit; optional default microphone, system audio, and camera bubble; pause/resume; menu-bar stop and safe finalization on normal Quit.
@@ -36,4 +38,4 @@ The first bundle uses SwiftPM plus a packaging script instead of an Xcode app pr
 
 Camera composition currently relies on an included floating camera window while the rest of the app is excluded from display capture. This is an explicit provisional departure from the planned single scene renderer. It must be checked for occlusion, spaces/fullscreen, mixed DPI, and exactly-once inclusion before being relied on. Window/region capture is unavailable. The camera and microphone use default devices; their switches apply before recording. There are no live mute controls, audio meters, global shortcuts, echo processing, saved presets, trash, background export queue, handoff jobs, or local agent control yet. `clips-probe` is a test tool, not the planned user CLI.
 
-Remaining physical Mac gates include fresh permission denial/retry, a two-minute real capture and playback, ten recording cycles, real Quit and source-ended races, actual static-screen pause, mic/camera unplug and route changes, lock/sleep/display removal, mixed-DPI geometry and app-window exclusion, speakers/headphones double-talk, long-session drift/performance, VoiceOver, macOS 14 launch, and signed/notarized clean-machine installation. Disk-full/read-only fault injection and varied checkpoint/power-loss testing also remain open. No milestone is marked complete until its corresponding evidence exists.
+Remaining physical Mac gates include fresh permission denial/retry, a two-minute real capture and playback, ten recording cycles, real Quit and source-ended races, actual static-screen pause, mic/camera unplug and route changes, lock/sleep/display removal, mixed-DPI geometry and the revised app-window inclusion policy, speakers/headphones double-talk, long-session drift/performance, VoiceOver, macOS 14 launch, and signed/notarized clean-machine installation. Disk-full/read-only fault injection and varied checkpoint/power-loss testing also remain open. No milestone is marked complete until its corresponding evidence exists.

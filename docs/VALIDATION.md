@@ -2,6 +2,8 @@
 
 The prototype includes core and native media checks plus a process-kill probe. The macOS workflow emits `foundation-evidence.json` with its source commit and `hardwareValidated: false`; consult the completed run before claiming any check passed. [Implementation status](IMPLEMENTATION.md) maps that limited evidence to this matrix. No physical Mac acceptance case is closed by compilation or synthetic input. Source findings remain in [BASELINE-AND-DECISIONS.md](BASELINE-AND-DECISIONS.md).
 
+The include-Clips decision in [WANT.md](WANT.md) supersedes the original excluded-controls expectation in V23. Its implementation and physical proof remain open. [FEATURE-MAP.md](FEATURE-MAP.md) links cases to user entry points; [DIAGNOSTICS.md](DIAGNOSTICS.md) adds proposed logging/report acceptance checks without marking existing cases complete.
+
 ## Test layers
 
 - Core tests: state transitions, timeline math, manifest/journal reconciliation, geometry, path containment, and job idempotency. Use deterministic media and fault injection.
@@ -37,7 +39,7 @@ Tests should prove a user-visible outcome or safety invariant. Record the failin
 | V20 | Lock, sleep, wake, or display removal | Stop new capture, retain partial session, deliberate resume/finish on return | M2 |
 | V21 | Retina + non-Retina displays, negative origins, scaled display | Source/bubble coordinates agree between preview and decoded output | M2 |
 | V22 | Display, window, and region; source resize/minimize | Correct capture bounds, clear unsupported/interrupted state, no unrelated content leakage | M2 |
-| V23 | Open menus/dialogs/control windows while recording | App chrome absent from encoded frames; camera appears once | M2 |
+| V23 | Open menus/dialogs/control windows while recording | Clips windows inside the chosen capture scope appear in encoded frames per WANT.md; camera appears once; no pixels outside a selected region; current-process audio stays excluded | M2 |
 | V24 | Start, stop, and operate recording with keyboard/VoiceOver | Controls named, focus predictable, state conveyed without relying on color | M2/M5 |
 | V25 | Finish → preview → trim → rename → export | Correct selected frames/duration, playable audio mix, original unchanged | M3 |
 | V26 | Record again before exporting the last take | Earlier clip remains accessible and recoverable | M3 |

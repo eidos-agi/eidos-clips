@@ -36,9 +36,9 @@ flowchart TD
   E --> H["Optional handoff"]
 ```
 
-Exclude Eidos Clips windows from screen capture, then composite the camera exactly once. Use one scene description for preview and encoded output. This supports screen, window, and region capture without depending on the bubble itself being present inside the captured OS window.
+The current product decision in [WANT.md](WANT.md) is to include Clips windows in the captured scope, including a reopened main window and HUD, while continuing to exclude current-process audio. This supersedes the original instruction to hide app windows. If explicit camera composition is added later, prevent double inclusion of the already-visible camera window; preview and encoded output must agree. The baseline code still uses the older exclusion filter and must change.
 
-Coordinate conversion must cover logical points, pixel scale, display origins (including negative coordinates), selected source bounds, and output pixels. Keep placement normalized to the selected capture. Source resizing/monitor removal must pause or make an explicit supported adjustment; never continue capturing an unrelated area. Refresh exclusions for newly opened app windows and inspect encoded frames to prove that panels, dialogs, and menus do not leak. Do not rely solely on window sharing flags.
+Coordinate conversion must cover logical points, pixel scale, display origins (including negative coordinates), selected source bounds, and output pixels. Keep placement normalized to the selected capture. Source resizing/monitor removal must pause or make an explicit supported adjustment; never continue capturing an unrelated area. Inspect encoded frames to verify scope boundaries, intended inclusion of Clips windows, and exactly one camera image. Newly opened Clips windows inside the scope must be captured under the revised policy. Do not rely solely on window sharing flags.
 
 M0 compares the existing direct-capture bubble technique with explicit composition. Explicit composition is the proposed choice because it supports all capture scopes. Keep a simpler display-only implementation for the M1 internal build if the renderer is not ready; the public scope requires M2's complete geometry proof.
 
@@ -91,6 +91,8 @@ Capture and export need only the Mac and its disk. A generic synced-folder hando
 Optional later providers may report **Uploaded** after provider confirmation and **Link ready** only after they return a usable share URL with known access scope. They may target user-owned storage, including a future S3-compatible adapter; no storage vendor or hosting platform is required. Credentials belong in the OS credential store, not manifests or logs. Keep credentials and destinations separate for each user-selected profile. No personal account details are embedded in this plan.
 
 Persist operation state and local events rather than adding an in-app notification inbox. Status stays near the active recording or clip. Diagnostics remain local unless explicitly exported and should exclude captured content, secrets, and unnecessary window titles/absolute paths. An update check is opt-in and separate from capture; product copy must not claim zero network activity while an online option is enabled.
+
+The proposed structured diagnostic log, bounded metrics, report outbox, public-report validation and local-agent Git bridge are detailed in [DIAGNOSTICS.md](DIAGNOSTICS.md). They are not implemented. The recorder needs no GitHub write credential; raw logs stay local and the chosen local agent commits only schema-validated reports.
 
 ## Browser edition boundary
 

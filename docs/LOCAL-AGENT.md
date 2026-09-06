@@ -2,7 +2,7 @@
 
 Build the current `main` of `eidos-agi/eidos-clips` into a company-signed, notarized ZIP using the existing Eidos signing Mac. Return the artifact and verification evidence to Daniel. The native application and release scripts are committed; actual company signing and physical capture validation are still pending.
 
-Read [SIGNING.md](SIGNING.md), [IMPLEMENTATION.md](IMPLEMENTATION.md), and [VALIDATION.md](VALIDATION.md) before executing. The signing reference is [eidos-desktop-app-builder](https://github.com/eidos-agi/eidos-desktop-app-builder/tree/958661919e65bb8f066cdcee73a0e34293eaff1e), especially its identity matrix and credential-custody instructions. Use applicable local agent instructions as well.
+Read [FEATURE-MAP.md](FEATURE-MAP.md) for user paths and known gaps, then [SIGNING.md](SIGNING.md), [IMPLEMENTATION.md](IMPLEMENTATION.md), and [VALIDATION.md](VALIDATION.md) before executing. The signing reference is [eidos-desktop-app-builder](https://github.com/eidos-agi/eidos-desktop-app-builder/tree/958661919e65bb8f066cdcee73a0e34293eaff1e), especially its identity matrix and credential-custody instructions. Use applicable local agent instructions as well.
 
 ## 1. Fetch and isolate the exact source
 
@@ -67,10 +67,12 @@ Prioritize these checks from [VALIDATION.md](VALIDATION.md):
 | V36 | Open the actual downloaded, quarantined signed build on a clean Mac/account, verify identity and usable permission prompts; command-line assessment on the signing Mac alone does not close this case. |
 | V01–V03 | Screen permission denial/retry; unavailable or denied optional mic/camera; no false successful narrated recording. |
 | V06, V12–V13 | Ten start/stop cycles, normal Quit during capture, repeated pause/resume on a static screen; inspect exported picture and sound. |
-| V23–V25, V37 | App chrome excluded, camera appears once, keyboard/VoiceOver behavior, finish/play/trim/rename/export, originals preserved, QuickTime playback. |
+| V23–V25, V37 | Clips windows included inside the selected scope per WANT.md (currently a known missing behavior), camera appears once, keyboard/VoiceOver behavior, finish/play/trim/rename/export, originals preserved, QuickTime playback. |
 | V16–V17, V19–V21, V38 | Two-hour sync/soak, resource measurements, actual audio routes, device removal, lock/sleep/wake, mixed-scale displays. These remain unproven until performed. |
 
 Whole-display capture is currently implemented, capped at 1920 pixels wide and nominal 30 fps. Window/region capture, input device pickers, live input toggles, trash, and agent handoff are planned. Do not claim these work, or mark a broader validation case passed based on only its implemented subset. Recovery from committed synthetic checkpoints also does not prove orphan/manifest reconstruction, sudden power-loss recovery, or real-device failure handling.
+
+Structured application logging and the automatic sanitized-report bridge in [DIAGNOSTICS.md](DIAGNOSTICS.md) are not implemented yet. Do not assume a Logs folder or diagnostic uploader exists, and do not commit raw machine logs or recordings to this public repo. Report feature IDs, source SHA, observed outcomes and sanitized evidence through the current handoff. The revised include-Clips behavior should remain failed/untested until feature code and actual output prove it.
 
 ## Return a concise result
 

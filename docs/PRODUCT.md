@@ -1,6 +1,6 @@
 # Product and experience
 
-Planning baseline: 2026-09-06. All features below are proposed unless explicitly described as existing in the source review.
+Planning baseline: 2026-09-06. All features below are proposed unless explicitly described as existing in the [feature map](FEATURE-MAP.md). The later [WANT.md](WANT.md) brief takes priority for the next slice: compact controls, region capture, and Clips windows included in recorded video. Window selection remains in the wider plan and can follow that slice.
 
 ## Promise
 
@@ -31,7 +31,7 @@ Preview the exact capture bounds. Label the display and selected window by recog
 
 ### 2. Record
 
-A cancellable three-second countdown gives time to switch context. A compact floating control strip shows record/pause state, elapsed recorded time, audio activity, and Stop. It can collapse while the menu-bar indicator remains obvious. Controls are excluded from the recorded video and the camera appears exactly once.
+A cancellable three-second countdown gives time to switch context. A compact floating control strip shows record/pause state, elapsed recorded time, audio activity, and Stop. It can collapse while the menu-bar indicator remains obvious. Clips windows and controls are included when inside the selected capture scope, as requested in WANT.md; the camera appears exactly once. Opening Clips during a take is allowed. Current-process audio remains excluded to avoid recording the app playback itself. This supersedes the original excluded-controls design and is not yet implemented in the baseline source.
 
 Move and resize the camera bubble within the capture area; remember its normalized placement per preset. “Camera off” stops camera capture. “Microphone muted” prevents microphone samples from being retained. Show these states consistently in the panel, menu bar, and automation status.
 

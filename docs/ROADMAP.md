@@ -1,6 +1,6 @@
 # Delivery plan
 
-The first native prototype is implemented. No milestone exit gate is complete yet. [Implementation status](IMPLEMENTATION.md) records the current scope, deliberate deviations, and evidence limits. CI produces a source-linked evidence artifact; physical Mac cases remain pending. The ordered work packages below remain the acceptance contract.
+The first native prototype is implemented. No milestone exit gate is complete yet. [Implementation status](IMPLEMENTATION.md) records the current scope, deliberate deviations, and evidence limits. CI produces a source-linked evidence artifact; physical Mac cases remain pending. The ordered work packages below remain the acceptance contract. [FEATURE-MAP.md](FEATURE-MAP.md) supplies user paths and implementation/evidence status; [LOOM-GAPS.md](LOOM-GAPS.md) records broader opportunities for discussion. Neither adds all proposed features to the release gate.
 
 ## Milestones
 
@@ -28,7 +28,7 @@ M1 is for short internal tests with expendable material. M3 is the everyday work
 | R11 | Implement recording package, journal, recovery, and export validation | R10 | Interrupted package reopens; completed output has expected tracks and duration |
 | R12 | Add storage budgeting and writer failure paths | R11 | Disk-full and permission failures keep completed data and show an actionable error |
 | U20 | Build ready panel, scope picker, presets, meters, and permission flow | R12 | Returning-user setup path and denied/missing optional device cases |
-| U21 | Implement scene rendering and display/window/region geometry | U20 | Pixel-inspected exports on mixed-DPI layouts; controls absent and camera present once |
+| U21 | Implement scene rendering and display/window/region geometry | U20 | Pixel-inspected exports on mixed-DPI layouts; Clips windows inside the selected scope included per WANT.md and camera present once |
 | U22 | Complete pause/resume, shortcuts, mute/camera-off, and interruption UI | U21 | Static-screen pause, source unplug, Bluetooth change, lock/sleep, keyboard and VoiceOver cases |
 | F30 | Add preview, title, trim, export queue, and retained takes | U22 | Frame/duration-checked trim exports; Record again retains earlier recording |
 | F31 | Add small catalog, project/notes search, missing-file and trash handling | F30 | Catalog rebuild from packages; repair stale index; recover an accidental deletion |
@@ -41,7 +41,9 @@ M1 is for short internal tests with expendable material. M3 is the everyday work
 
 ## Next executable work
 
-Close P00–P03 using the prototype and its CI evidence. Validate the app on a physical Mac and make a two-minute display/microphone recording. Then terminate the process during capture and recover the playable portion. Measure startup, retained duration, A/V alignment, and memory. Record the chosen container/checkpoint design and supported macOS floor. Finish this proof before polishing the library or implementing cloud integrations.
+The immediate product slice is [WANT.md](WANT.md): compact ready/HUD, include Clips in video while excluding its audio, region selection with Esc cancel, and diagnostic logging. Extend diagnostics toward the structured report/repo feedback design in [DIAGNOSTICS.md](DIAGNOSTICS.md). Its public-report validator and local Git bridge need their own evidence before automatic publication; raw logs are not repository fixtures. Window selection can follow this slice. Broader opportunities remain for discussion in the feature map.
+
+In parallel with that slice, close P00–P03 using the prototype and its CI evidence. Validate the app on a physical Mac and make a two-minute display/microphone recording. Then terminate the process during capture and recover the playable portion. Measure startup, retained duration, A/V alignment, and memory. Record the chosen container/checkpoint design and supported macOS floor. Finish this proof before polishing the library or implementing cloud integrations.
 
 If M0 cannot meet the proposed recovery interval, document the measured limitation and revise the design/target explicitly. Do not carry an unproven guarantee into UI copy or the README. Prefer a narrower working capture mode for M1 over claiming all scopes before M2.
 
@@ -53,7 +55,7 @@ Use synthetic/public-domain media for test evidence. Record hardware, OS, browse
 
 CI should run formatting/build and meaningful core/integration checks on Mac. Hardware-only cases stay marked pending until performed on a physical supported Mac; a green simulator or headless job cannot substitute for permission prompts, real displays, Bluetooth, and speakers.
 
-Before public distribution, establish an organization-controlled Apple Developer signing identity, a stable bundle ID, intended copyright/license for new code, and the public release location. The current repo remains private until explicitly changed. Missing signing credentials can block distribution while all code, packaging instructions, tests, and unsigned internal artifacts continue to be prepared. Never commit secrets or signing material.
+The repository became public and MIT-licensed at `1eaf230` on September 6, 2026. The existing company Developer ID and stable release bundle ID are documented in SIGNING.md; executed notarization and clean-install evidence remain required for a trusted binary release. Source publication does not close M5. Missing access to the signing Mac can block binary delivery while code, packaging, tests, and development artifacts continue. Never commit secrets, signing material, raw private diagnostics, or personal recordings.
 
 ## Deferred ideas and revisit triggers
 
