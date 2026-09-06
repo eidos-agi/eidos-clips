@@ -378,7 +378,7 @@ final class ClipsModel: ObservableObject {
     func shareDevicePreview(_ value: Bool) {
         nearby.sharingPreview = value
         if !value, nearby.approved { try? nearby.link.send(.init(.preview)) }
-        capture.preview = value ? { [weak self] data in Task { @MainActor in self?.nearby.sendPreview(data) } } : nil
+        capture.preview = value ? { [weak self] data in Task { @MainActor in guard let self, self.phase == .recording else { return }; self.nearby.sendPreview(data) } } : nil
     }
     func diagnosticReport() {
         do {

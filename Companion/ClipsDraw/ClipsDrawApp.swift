@@ -41,7 +41,7 @@ import UIKit
                 self.canvas = canvas
                 if !canvas.acceptsInput { self.preview = nil }
             case .preview:
-                self.preview = message.payload.count <= 240_000 ? UIImage(data: message.payload) : nil
+                self.preview = self.canvas?.acceptsInput == true && message.payload.count <= 240_000 ? UIImage(data: message.payload) : nil
                 try? self.link.send(.init(.previewAck))
             default: break
             }
