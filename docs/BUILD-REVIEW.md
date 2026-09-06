@@ -9,10 +9,19 @@
 | `7aa3f0d3aaf373ecd38c5d6239ff2049489d80d7` | [34017757191](https://github.com/eidos-agi/eidos-clips/actions/runs/34017757191) | Corrected platform path; native Mac and iPad Simulator compilation, contract/crypto/media tests, native views and recovery probes passed |
 | `07cd5ddc55d96a36057f22f5af70485c5e1f3192` | [34018312819](https://github.com/eidos-agi/eidos-clips/actions/runs/34018312819) | 14 XCTest tests, Mac/iPad compilation, native local drawing/disable/shortcut checks and synthetic recovery probes passed |
 | `e3f8fc3e00779a220bbb1e8039c916a3ac1c7d96` | [34018703977](https://github.com/eidos-agi/eidos-clips/actions/runs/34018703977) | 15 XCTest tests, four Python diagnostic tests, Mac/iPad builds, real iPad Simulator launch/screenshots, six Mac native renders/adapter checks, synthetic recovery probes passed |
+| `e293e837be9a222449ff716f3356f6332ce1c75d` | [34019790388](https://github.com/eidos-agi/eidos-clips/actions/runs/34019790388) | Final 0.3.0 application source: 15 XCTest tests, four Python tests, both builds, iPad Simulator launch, native render/adapter checks and recovery probes passed; includes committed-key pairing v2, pause-scoped preview and responsive job cancellation |
 
-[Application, companion and evidence artifact](https://github.com/eidos-agi/eidos-clips/actions/runs/34018703977/artifacts/9984848025) contains the Mac development ZIP, iPad Simulator ZIP, logs, renders and JSON evidence. Artifact digest: `sha256:7dbcecee7c1489a2db7197f6e14b340a29fa0943e4bc5d14569d4b07839bf951`; GitHub currently retains it until September 20, 2026.
+## Current development artifacts
 
-The following cleanup adds preparation-cancel/quit behavior, input-disconnect observers, removal of the obsolete large recording view, and dirty-build provenance. Main is advanced only after its native workflow succeeds.
+[Download the Mac development app, iPad Simulator companion and evidence](https://github.com/eidos-agi/eidos-clips/actions/runs/34019790388/artifacts/9985191407).
+
+- Application source: `e293e837be9a222449ff716f3356f6332ce1c75d`, advanced to main after its complete workflow succeeded.
+- Artifact digest: `sha256:cc5a714c797d18778d75ddacccfc71a715cf5b35c9f9f8cc1afcea763153d3e4`.
+- Current GitHub expiration: September 20, 2026. Preserve needed artifacts locally before then.
+- The Mac ZIP is development/ad-hoc signed, not notarized. The companion ZIP is for Simulator, not a provisioned physical iPad.
+- Earlier artifact links in workflow history are superseded. Build both devices from current main for pairing protocol v2.
+
+The final code includes preparation cancellation, clean job cancellation on Quit, explicit input/display-loss interruption, removal of the obsolete studio recording page, dirty-build provenance, cancellation-aware hashing/decoding, and recording-clock cutoff at Stop. The following documentation-only commit updates this evidence link; it does not change application code.
 
 ## What these checks establish
 
