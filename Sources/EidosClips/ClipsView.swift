@@ -307,7 +307,7 @@ struct ClipTile: View {
                 }.frame(height: 145).clipped().clipShape(RoundedRectangle(cornerRadius: 10))
                 Text(clip.title).font(.system(size: 13, weight: .medium)).lineLimit(1)
                 HStack {
-                    Text(clip.date.formatted(date: .abbreviated, time: .omitted))
+                    Text(clip.date == .distantPast ? "Details unavailable" : clip.date.formatted(date: .abbreviated, time: .omitted))
                     Spacer()
                     if clip.needsRecovery { Label("Recover", systemImage: "arrow.counterclockwise").foregroundStyle(ClipsStyle.accent) }
                     else { Text("On this Mac") }

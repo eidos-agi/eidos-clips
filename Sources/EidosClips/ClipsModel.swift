@@ -100,7 +100,13 @@ final class ClipsModel: ObservableObject {
     }
 
     func readClip(_ url: URL) -> LibraryClip? {
-        guard let store = try? RecordingStore(open: url) else { return nil }
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        guard let store = try? RecordingStore(open: url) else {
+            // Damaged packages stay discoverable; opening them reports the underlying error.
+            return LibraryClip(id: UUID(uuidString: url.deletingPathExtension().lastPathComponent) ?? UUID(),
+                package: url, title: "Recording needs attention", date: .distantPast,
+                duration: 0, status: .failed, thumbnail: nil)
+        }
         let m = store.manifest
         return LibraryClip(id: m.id, package: url, title: m.title, date: m.createdAt,
                            duration: m.duration, status: m.status, thumbnail: nil)
