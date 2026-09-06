@@ -14,7 +14,12 @@ final class ModuleTests: XCTestCase {
     }
     func testPairingAuthenticatesTranscriptAndRejectsReplayOrTampering() throws {
         let host = PairingChannel(isHost: true), device = PairingChannel(isHost: false)
-        try host.accept(device.hello); try device.accept(host.hello)
+        XCTAssertThrowsError(try host.reveal())
+        try host.acceptCommitment(device.commitment); try device.acceptCommitment(host.commitment)
+        let hostHello = try host.reveal(), deviceHello = try device.reveal()
+        var badNonce = deviceHello.nonce; badNonce[0] ^= 1
+        XCTAssertThrowsError(try host.accept(PeerHello(version: 2, publicKey: deviceHello.publicKey, nonce: badNonce)))
+        try host.accept(deviceHello); try device.accept(hostHello)
         XCTAssertEqual(host.comparisonCode, device.comparisonCode)
         let sealed = try host.seal(PeerMessage(.canvas, payload: Data("fixture".utf8)))
         XCTAssertEqual(try device.open(sealed).payload, Data("fixture".utf8))
@@ -24,7 +29,7 @@ final class ModuleTests: XCTestCase {
         json["sequence"] = 100
         XCTAssertThrowsError(try host.open(JSONSerialization.data(withJSONObject: json)))
         XCTAssertEqual(try host.open(response).kind, .approved)
-        let impostor = PairingChannel(isHost: false); try impostor.accept(host.hello)
+        let impostor = PairingChannel(isHost: false); try impostor.acceptCommitment(host.commitment); try impostor.accept(hostHello)
         XCTAssertThrowsError(try impostor.open(sealed))
     }
     func testDrawingRejectsStaleTargetAndReorderingAndDeduplicates() throws {

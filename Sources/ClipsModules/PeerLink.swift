@@ -18,6 +18,7 @@ private final class PeerIngress: @unchecked Sendable {
     public private(set) var approved = false
     public private(set) var localApproved = false
     private var remoteApproved = false
+    private var receivedCommitment = false
     private var channel: PairingChannel?
     private var session: MCSession?
     private var advertiser: MCNearbyServiceAdvertiser?
@@ -35,7 +36,7 @@ private final class PeerIngress: @unchecked Sendable {
         let session = MCSession(peer: peer, securityIdentity: nil, encryptionPreference: .required)
         session.delegate = self; self.session = session
         if host {
-            let advertiser = MCNearbyServiceAdvertiser(peer: peer, discoveryInfo: ["v": "1"], serviceType: "eidos-clips")
+            let advertiser = MCNearbyServiceAdvertiser(peer: peer, discoveryInfo: ["v": "2"], serviceType: "eidos-clips")
             advertiser.delegate = self; self.advertiser = advertiser; advertiser.startAdvertisingPeer()
         } else {
             let browser = MCNearbyServiceBrowser(peer: peer, serviceType: "eidos-clips")
@@ -53,7 +54,7 @@ private final class PeerIngress: @unchecked Sendable {
     public func stop() {
         timeout?.cancel(); timeout = nil; advertiser?.stopAdvertisingPeer(); browser?.stopBrowsingForPeers()
         advertiser = nil; browser = nil; session?.disconnect(); session = nil; channel = nil; chosen = nil
-        approved = false; localApproved = false; remoteApproved = false; connected = false; comparisonCode = nil
+        receivedCommitment = false; approved = false; localApproved = false; remoteApproved = false; connected = false; comparisonCode = nil
         status = "Disconnected"; changed?()
     }
     public func send(_ message: PeerMessage) throws { try send(message, requiresApproval: true) }
@@ -74,7 +75,7 @@ private final class PeerIngress: @unchecked Sendable {
             if state == .connected {
                 guard self.chosen == peerID, let channel else { fail(); return }
                 connected = true
-                do { try session.send(JSONEncoder().encode(channel.hello), toPeers: [peerID], with: .reliable) } catch { fail() }
+                do { try session.send(JSONEncoder().encode(channel.commitment), toPeers: [peerID], with: .reliable) } catch { fail() }
             } else if state == .notConnected { DiagnosticLog.shared.record(.deviceDisconnected); stop() }
             changed?()
         }
@@ -90,6 +91,11 @@ private final class PeerIngress: @unchecked Sendable {
             do {
                 if comparisonCode == nil {
                     guard data.count <= 1024 else { throw ModuleError.invalid("Handshake too large.") }
+                    if !receivedCommitment {
+                        try channel.acceptCommitment(JSONDecoder().decode(PeerCommitment.self, from: data)); receivedCommitment = true
+                        try session.send(JSONEncoder().encode(channel.reveal()), toPeers: [peerID], with: .reliable)
+                        return
+                    }
                     try channel.accept(JSONDecoder().decode(PeerHello.self, from: data)); comparisonCode = channel.comparisonCode
                     status = "Compare this code on both devices."; changed?(); return
                 }
@@ -104,14 +110,14 @@ private final class PeerIngress: @unchecked Sendable {
     }
     nonisolated public func advertiser(_ advertiser: MCNearbyServiceAdvertiser, didReceiveInvitationFromPeer peerID: MCPeerID, withContext context: Data?, invitationHandler: @escaping (Bool, MCSession?) -> Void) {
         Task { @MainActor in
-            guard self.advertiser === advertiser, chosen == nil, let session, context == Data("ink-v1".utf8) else { invitationHandler(false, nil); return }
+            guard self.advertiser === advertiser, chosen == nil, let session, context == Data("ink-v2".utf8) else { invitationHandler(false, nil); return }
             chosen = peerID; invitationHandler(true, session)
         }
     }
     nonisolated public func browser(_ browser: MCNearbyServiceBrowser, foundPeer peerID: MCPeerID, withDiscoveryInfo info: [String: String]?) {
         Task { @MainActor in
-            guard self.browser === browser, chosen == nil, info?["v"] == "1", let session else { return }
-            chosen = peerID; browser.invitePeer(peerID, to: session, withContext: Data("ink-v1".utf8), timeout: 30)
+            guard self.browser === browser, chosen == nil, info?["v"] == "2", let session else { return }
+            chosen = peerID; browser.invitePeer(peerID, to: session, withContext: Data("ink-v2".utf8), timeout: 30)
         }
     }
     nonisolated public func browser(_ browser: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {}

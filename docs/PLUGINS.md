@@ -17,6 +17,8 @@
 | DestinationAdapter | LocalFolderDestination | `Sources/ClipsMedia/ExportAdapters.swift` |
 | DestinationAdapter | LocalWatchDestination | `Sources/ClipsMedia/WatchBundle.swift` |
 
+Nearby drawing uses wire protocol v2: each peer first sends a SHA-256 key/nonce commitment, then reveals, derives a transcript-bound key, and requires matching-code approval on both screens. Encrypted messages are ordered and capability-limited. This closes adaptive key selection during short-code comparison; real-device transport and independent security review remain separate acceptance work.
+
 Registration includes concrete protocol instances and capability-checked lookup. The shell obtains edit, processing and destination adapters through the registry. Basic MP4 export remains part of the required application. No third-party process isolation is claimed. Future external modules must pass the containment cases below before loading is enabled.
 
 ## The product must stand on its own
