@@ -98,6 +98,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Task { @MainActor in self?.updateTimer() }
         }
         loadRecent(); updateState(); window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
+        if CommandLine.arguments.contains("--ui-smoke") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in self?.runUISmoke() }
+        }
+    }
+
+    /// CI-only launch check. It does not request permissions or start any capture device.
+    func runUISmoke() {
+        do {
+            guard CommandLine.arguments.count == 3, let content = window.contentView, window.isVisible else {
+                throw ClipsError.invalidState("UI smoke test did not open a window.")
+            }
+            content.layoutSubtreeIfNeeded()
+            for control in [record!, pause!, stop!, recover!, trim!, share!, titleField, startField, endField, player] as [NSView] {
+                let frame = control.convert(control.bounds, to: content)
+                guard frame.width > 0, frame.height > 0, content.bounds.contains(frame) else {
+                    throw ClipsError.invalidState("A recording or review control is outside the window: \(frame).")
+                }
+            }
+            guard record.isEnabled, !stop.isEnabled, capture.state.value == .idle,
+                  let bitmap = content.bitmapImageRepForCachingDisplay(in: content.bounds) else {
+                throw ClipsError.invalidState("Initial recording controls are inconsistent.")
+            }
+            content.cacheDisplay(in: content.bounds, to: bitmap)
+            let folder = URL(fileURLWithPath: CommandLine.arguments[2])
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            guard let png = bitmap.representation(using: .png, properties: [:]) else {
+                throw ClipsError.invalidState("UI screenshot failed.")
+            }
+            try png.write(to: folder.appendingPathComponent("ui-smoke.png"))
+            let evidence: [String: Any] = ["uiLaunched": true, "controlsInWindow": true,
+                "hardwareValidated": false, "sourceCommit": ProcessInfo.processInfo.environment["GITHUB_SHA"] ?? "local"]
+            let data = try JSONSerialization.data(withJSONObject: evidence, options: [.prettyPrinted, .sortedKeys])
+            try data.write(to: folder.appendingPathComponent("ui-smoke.json"))
+            print(String(decoding: data, as: UTF8.self))
+            NSApp.terminate(nil)
+        } catch {
+            FileHandle.standardError.write(Data((error.localizedDescription + "\n").utf8))
+            exit(1)
+        }
     }
 
     func button(_ name: String, _ action: Selector) -> NSButton {

@@ -25,6 +25,12 @@ jobs:
           swift test 2>&1 | tee dist/swift-tests.log
       - name: Build development application
         run: bash scripts/build-app.sh
+      - name: Launch app and check visible controls without capture
+        run: |
+          python3 - <<'PY'
+          import pathlib, subprocess
+          subprocess.run(['.build/release/EidosClips', '--ui-smoke', str(pathlib.Path('dist').resolve())], check=True, timeout=20)
+          PY
       - name: Decode synthetic normal, paused, trimmed and interrupted recordings
         run: python3 scripts/recovery-probe.py .build/release/clips-probe dist/foundation-evidence.json
       - name: Upload application and evidence

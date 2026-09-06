@@ -28,7 +28,7 @@ Incomplete or orphan segments are retained but not automatically salvaged. A cor
 | SIGKILL before first and after one/three video checkpoints | Part of V10 | Committed synthetic video can be decoded after process termination; no-video package refuses false success; originals unchanged |
 | Same-size media corruption probe | Parts of V07, V11 | Corruption prevents a completed export and leaves source untouched |
 
-CI uploads the app only after these checks succeed. `foundation-evidence.json` and `swift-tests.log` are authoritative for the actual run, not this list of intended checks. The app itself is compiled and packaged; the headless probe does not launch or exercise its UI.
+CI uploads the app only after these checks succeed. `foundation-evidence.json` and `swift-tests.log` are authoritative for the actual run, not this list of intended checks. A separate `--ui-smoke` launch opens the real AppKit window, checks that recording/review controls fit and start in an idle state, and saves `ui-smoke.json` plus a rendering of the app's own view. It never starts screen, mic, or camera capture. The media probe is headless and uses synthetic input.
 
 ## Scope decisions and open work
 
