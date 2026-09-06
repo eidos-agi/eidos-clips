@@ -1,6 +1,6 @@
 # Validation and release evidence
 
-Nothing in this file has passed yet. The current change contains documentation only. Source findings are in [BASELINE-AND-DECISIONS.md](BASELINE-AND-DECISIONS.md); these cases define the evidence required before claiming the successor works.
+The prototype includes core and native media checks plus a process-kill probe. The macOS workflow emits `foundation-evidence.json` with its source commit and `hardwareValidated: false`; consult the completed run before claiming any check passed. [Implementation status](IMPLEMENTATION.md) maps that limited evidence to this matrix. No physical Mac acceptance case is closed by compilation or synthetic input. Source findings remain in [BASELINE-AND-DECISIONS.md](BASELINE-AND-DECISIONS.md).
 
 ## Test layers
 

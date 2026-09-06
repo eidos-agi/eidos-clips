@@ -1,6 +1,6 @@
 # Delivery plan
 
-All implementation work is **not started**. This is an ordered plan, not a completion ledger. Implementation should update this file with commit references and evidence as work passes its gate. Estimates are deliberately deferred until the first media spike measures effort.
+The first native prototype is implemented. No milestone exit gate is complete yet. [Implementation status](IMPLEMENTATION.md) records the current scope, deliberate deviations, and evidence limits. CI produces a source-linked evidence artifact; physical Mac cases remain pending. The ordered work packages below remain the acceptance contract.
 
 ## Milestones
 
@@ -41,7 +41,7 @@ M1 is for short internal tests with expendable material. M3 is the everyday work
 
 ## Next executable work
 
-Start P00–P03 as one bounded foundation slice. Create the native project, import only justified source with provenance, and make a two-minute display/microphone recording. Then terminate the process during capture and recover the playable portion. Measure startup, retained duration, A/V alignment, and memory. Record the chosen container/checkpoint design and supported macOS floor. Finish this proof before polishing the library or implementing cloud integrations.
+Close P00–P03 using the prototype and its CI evidence. Validate the app on a physical Mac and make a two-minute display/microphone recording. Then terminate the process during capture and recover the playable portion. Measure startup, retained duration, A/V alignment, and memory. Record the chosen container/checkpoint design and supported macOS floor. Finish this proof before polishing the library or implementing cloud integrations.
 
 If M0 cannot meet the proposed recovery interval, document the measured limitation and revise the design/target explicitly. Do not carry an unproven guarantee into UI copy or the README. Prefer a narrower working capture mode for M1 over claiming all scopes before M2.
 

@@ -2,9 +2,24 @@
 
 **Show it. Keep it. Put it to work.**
 
-Eidos Clips is a planned native screen recorder for clear demonstrations, walkthroughs, and call recordings. Capture your screen, camera, microphone, and system audio; review and trim the result; keep an ordinary video file; optionally hand it to a destination or agent you choose.
+Eidos Clips is a native screen recorder prototype for clear demonstrations, walkthroughs, and call recordings. Capture your screen, camera, microphone, and system audio; review and trim the result; keep an ordinary video file; optionally hand it to a destination or agent you choose.
 
-**Status: planning only. No application, installer, or completed implementation milestones are present yet.** This repository was empty when inspected on 2026-09-06. The documents below define the proposed successor to [Not Loom](https://github.com/eidos-agi/notloom-public), based on its source at `d58e7ebc33e7e9a4ea2e7d3dfe3aeb9155d0b80e`.
+**Status: first native prototype; physical Mac validation and release signing are pending.** This repository now includes the application, core/media tests, development packaging, and a macOS CI workflow. See [implementation status](docs/IMPLEMENTATION.md) for implemented features and the remaining gates. A green synthetic test is not evidence that real screen, camera, microphone, or speaker capture works.
+
+## Build and try it
+
+On a Mac with Xcode 16.4 selected:
+
+```sh
+swift test
+bash scripts/build-app.sh
+```
+
+Unzip `dist/EidosClips-macOS.zip` and open `EidosClips.app`. The app is development signed by default; this is not a notarized download. CI artifacts include the zipped app, its SHA-256, toolchain information, test log, and synthetic recovery evidence when all checks pass. The development bundle ID is `org.eidos.clips`, pending ownership confirmation before release.
+
+Choose a display and grant Screen Recording permission in System Settings. Enable the optional microphone, system audio, and camera before pressing Record. Pause/Resume and Stop are also available in the menu bar. Stop validates the recording and opens playback. Use Recover / Open for retained takes, or enter start/end seconds and Export trim. Files remain under `~/Movies/Eidos Clips/`; Share opens the macOS share sheet for an exported file.
+
+Current capture is **whole display only**, up to 1920 pixels wide at a nominal 30 fps. Camera uses a floating preview window on that display. Window/region capture, device pickers, meters, live mute/camera controls, remembered presets, search/trash, and agent handoff are still planned. The app prevents starting another capture while an export is running.
 
 ## The product we are building
 
