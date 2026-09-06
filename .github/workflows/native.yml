@@ -1,0 +1,68 @@
+name: Native macOS build and review
+on:
+  push:
+    branches: [main, 'codex/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native:
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Record toolchain
+        run: |
+          mkdir -p dist
+          { sw_vers; uname -m; xcodebuild -version; swift --version; } | tee dist/toolchain.txt
+      - name: Unit and native media tests
+        run: |
+          set -o pipefail
+          swift test 2>&1 | tee dist/swift-tests.log
+      - name: Build development application
+        run: bash scripts/build-app.sh
+      - name: Verify development bundle identity and signature
+        run: |
+          python3 - <<'PY'
+          import json, pathlib, plistlib, subprocess, tempfile
+          with tempfile.TemporaryDirectory(prefix='clips-bundle-') as folder:
+              subprocess.run(['ditto', '-x', '-k', 'dist/EidosClips-Development-macOS.zip', folder], check=True)
+              app = pathlib.Path(folder) / 'Eidos Clips Dev.app'
+              info = plistlib.loads((app / 'Contents/Info.plist').read_bytes())
+              assert info['CFBundleIdentifier'] == 'org.eidos.clips.dev'
+              assert (app / 'Contents/Resources/Clips.icns').stat().st_size > 1000
+              subprocess.run(['codesign', '--verify', '--strict', str(app)], check=True)
+              signature = subprocess.run(['codesign', '-d', '--verbose=4', str(app)], check=True, capture_output=True, text=True).stderr
+              assert 'Signature=adhoc' in signature
+              evidence = {'bundleID': info['CFBundleIdentifier'], 'signatureVerified': True, 'notarized': False, 'purpose': 'development only'}
+              pathlib.Path('dist/development-signing.json').write_text(json.dumps(evidence, indent=2))
+          PY
+      - name: Launch app and check visible controls without capture
+        run: |
+          python3 - <<'PY'
+          import base64, json, pathlib, subprocess, tempfile
+          with tempfile.TemporaryDirectory(prefix='clips-ui-') as folder:
+              probe = str(pathlib.Path('.build/release/clips-probe').resolve())
+              result = subprocess.run([probe, 'record', folder, '2'], check=True, text=True, capture_output=True, timeout=40)
+              package = json.loads(result.stdout.splitlines()[0])['package']
+              movie = str(pathlib.Path(folder) / 'preview.mp4')
+              subprocess.run([probe, 'recover', package, movie], check=True, timeout=40)
+              subprocess.run(['.build/release/EidosClips', '--ui-smoke', str(pathlib.Path('dist').resolve()), package, movie], check=True, timeout=30)
+          for path in sorted(pathlib.Path('dist').glob('ui-*.png')):
+              encoded = base64.b64encode(path.read_bytes()).decode()
+              for index in range(0, len(encoded), 5000):
+                  print('CLIPS_UI_IMAGE', path.name, index // 5000, encoded[index:index+5000])
+          PY
+      - name: Decode synthetic normal, paused, trimmed and interrupted recordings
+        run: python3 scripts/recovery-probe.py .build/release/clips-probe dist/foundation-evidence.json
+      - name: Upload application and evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: EidosClips-Development-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
