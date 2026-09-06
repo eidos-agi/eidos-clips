@@ -80,13 +80,13 @@ final class CaptureController {
             let display = displays[min(max(displayIndex, 0), displays.count - 1)]
             if microphone {
                 guard await AVCaptureDevice.requestAccess(for: .audio) else {
-                throw ClipsError.media("Microphone access was denied. Allow it or turn microphone recording off before starting.")
-            }
+                    throw ClipsError.media("Microphone access was denied. Allow it or turn microphone recording off before starting.")
+                }
             }
             if camera {
                 guard await AVCaptureDevice.requestAccess(for: .video) else {
-                throw ClipsError.media("Camera access was denied. Allow it or turn the camera off before starting.")
-            }
+                    throw ClipsError.media("Camera access was denied. Allow it or turn the camera off before starting.")
+                }
             }
             let origin = SegmentedRecorder.hostTime
             clock = SessionClock(origin: origin)

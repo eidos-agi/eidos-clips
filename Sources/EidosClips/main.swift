@@ -38,6 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 660, height: 740),
                           styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+        window.contentMinSize = NSSize(width: 660, height: 740)
         window.title = "Eidos Clips"; window.isReleasedWhenClosed = false; window.center()
         let heading = NSTextField(labelWithString: "Eidos Clips")
         heading.font = .systemFont(ofSize: 26, weight: .semibold)
@@ -64,14 +65,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             row([NSTextField(labelWithString: "Your clips"), recent, recover]), player,
             row([titleField, rename]), row([NSTextField(labelWithString: "Trim (seconds)"), startField, endField, trim]),
             row([open, share])]
-        let stack = NSStackView(views: rows); stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 14
+        let stack = NSStackView(views: rows); stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 10
         stack.translatesAutoresizingMaskIntoConstraints = false
         window.contentView!.addSubview(stack)
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: window.contentView!.leadingAnchor, constant: 24),
             stack.trailingAnchor.constraint(equalTo: window.contentView!.trailingAnchor, constant: -24),
             stack.topAnchor.constraint(equalTo: window.contentView!.topAnchor, constant: 24),
-            player.heightAnchor.constraint(equalToConstant: 300),
+            player.heightAnchor.constraint(equalToConstant: 200),
+            titleField.widthAnchor.constraint(equalToConstant: 400),
+            startField.widthAnchor.constraint(equalToConstant: 70),
+            endField.widthAnchor.constraint(equalToConstant: 70),
+            recent.widthAnchor.constraint(equalToConstant: 270),
+            screenPicker.widthAnchor.constraint(equalToConstant: 320),
             player.widthAnchor.constraint(equalTo: stack.widthAnchor),
             status.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
@@ -195,8 +201,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool { showWindow(); return true }
 }
 
-let application = NSApplication.shared
-let delegate = AppDelegate()
-application.delegate = delegate
-application.setActivationPolicy(.regular)
-application.run()
+// AppKit starts on the process main thread; keep application setup on its actor.
+MainActor.assumeIsolated {
+    let application = NSApplication.shared
+    let delegate = AppDelegate()
+    application.delegate = delegate
+    application.setActivationPolicy(.regular)
+    application.run()
+}
