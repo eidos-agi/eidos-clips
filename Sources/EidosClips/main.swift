@@ -1,246 +1,104 @@
 import AppKit
+import SwiftUI
 import AVKit
-import UniformTypeIdentifiers
 import ClipsCore
-import ClipsMedia
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    let capture = CaptureController()
+    let model = ClipsModel()
     var window: NSWindow!
     var statusItem: NSStatusItem!
-    let status = NSTextField(wrappingLabelWithString: "Choose a display, then record. Files stay in Movies → Eidos Clips.")
-    let timer = NSTextField(labelWithString: "00:00")
-    let screenPicker = NSPopUpButton()
-    let mic = NSButton(checkboxWithTitle: "Microphone", target: nil, action: nil)
-    let systemAudio = NSButton(checkboxWithTitle: "System audio", target: nil, action: nil)
-    let camera = NSButton(checkboxWithTitle: "Camera bubble", target: nil, action: nil)
-    let recent = NSPopUpButton()
-    let titleField = NSTextField(string: "")
-    let startField = NSTextField(string: "0")
-    let endField = NSTextField(string: "")
-    let player = AVPlayerView()
-    var record: NSButton!
-    var pause: NSButton!
-    var stop: NSButton!
-    var refresh: NSButton!
-    var recover: NSButton!
-    var trim: NSButton!
-    var rename: NSButton!
-    var share: NSButton!
-    var open: NSButton!
-    var packages: [URL] = []
-    var selectedPackage: URL?
-    var selectedExport: URL?
-    var editing = false
-    var uiTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 660, height: 740),
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1040, height: 780),
                           styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
-        window.contentMinSize = NSSize(width: 660, height: 740)
-        window.title = "Eidos Clips"; window.isReleasedWhenClosed = false; window.center()
-        let heading = NSTextField(labelWithString: "Eidos Clips")
-        heading.font = .systemFont(ofSize: 26, weight: .semibold)
-        let subtitle = NSTextField(labelWithString: "Record it. Keep it. Put it to work.")
-        subtitle.textColor = .secondaryLabelColor
-        timer.font = .monospacedDigitSystemFont(ofSize: 24, weight: .medium)
-        record = button("Record", #selector(start)); pause = button("Pause", #selector(togglePause))
-        stop = button("Stop", #selector(stopRecording)); refresh = button("Choose display…", #selector(loadDisplays))
-        recover = button("Recover / Open", #selector(openRecent)); trim = button("Export trim…", #selector(exportTrim))
-        rename = button("Rename", #selector(renameClip)); share = button("Share…", #selector(shareClip))
-        open = button("Show files", #selector(showFiles))
-        record.keyEquivalent = "r"; record.keyEquivalentModifierMask = [.command, .shift]
-        stop.keyEquivalent = "."; stop.keyEquivalentModifierMask = [.command]
-        mic.state = .on; camera.state = .on
-        screenPicker.addItem(withTitle: "Display selected after permission")
-        titleField.placeholderString = "Recording title"
-        startField.placeholderString = "Start seconds"; endField.placeholderString = "End seconds"
-        startField.setAccessibilityLabel("Trim start in seconds"); endField.setAccessibilityLabel("Trim end in seconds")
-        titleField.setAccessibilityLabel("Recording title"); recent.setAccessibilityLabel("Recent recordings")
-        screenPicker.setAccessibilityLabel("Display to record")
-        player.controlsStyle = .inline
-        let rows: [NSView] = [heading, subtitle,
-            row([screenPicker, refresh]), row([mic, systemAudio, camera]), row([timer, record, pause, stop]), status,
-            row([NSTextField(labelWithString: "Your clips"), recent, recover]), player,
-            row([titleField, rename]), row([NSTextField(labelWithString: "Trim (seconds)"), startField, endField, trim]),
-            row([open, share])]
-        let stack = NSStackView(views: rows); stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 10
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        window.contentView!.addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: window.contentView!.leadingAnchor, constant: 24),
-            stack.trailingAnchor.constraint(equalTo: window.contentView!.trailingAnchor, constant: -24),
-            stack.topAnchor.constraint(equalTo: window.contentView!.topAnchor, constant: 24),
-            player.heightAnchor.constraint(equalToConstant: 200),
-            titleField.widthAnchor.constraint(equalToConstant: 400),
-            startField.widthAnchor.constraint(equalToConstant: 70),
-            endField.widthAnchor.constraint(equalToConstant: 70),
-            recent.widthAnchor.constraint(equalToConstant: 270),
-            screenPicker.widthAnchor.constraint(equalToConstant: 320),
-            player.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            status.widthAnchor.constraint(equalTo: stack.widthAnchor),
-        ])
-        capture.changed = { [weak self] in self?.updateState() }
-        capture.report = { [weak self] text in self?.status.stringValue = text }
-        capture.completed = { [weak self] package, export in self?.display(package: package, export: export) }
+        window.title = "Eidos Clips"; window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true; window.isReleasedWhenClosed = false
+        window.backgroundColor = NSColor(red: 0.075, green: 0.078, blue: 0.086, alpha: 1)
+        window.appearance = NSAppearance(named: .darkAqua)
+        window.contentMinSize = NSSize(width: 880, height: 640)
+        window.contentView = NSHostingView(rootView: ClipsView(model: model))
+        window.center()
+        model.showWindow = { [weak self] in self?.showWindow() }
+        model.stateChanged = { [weak self] in self?.updateStatus() }
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         let menu = NSMenu()
-        menu.addItem(withTitle: "Show Eidos Clips", action: #selector(showWindow), keyEquivalent: "").target = self
-        menu.addItem(withTitle: "Pause / Resume", action: #selector(togglePause), keyEquivalent: "").target = self
-        menu.addItem(withTitle: "Stop recording", action: #selector(stopRecording), keyEquivalent: "").target = self
+        menu.addItem(withTitle: "Open Clips", action: #selector(showWindow), keyEquivalent: "").target = self
+        menu.addItem(withTitle: "Pause / Resume", action: #selector(pauseRecording), keyEquivalent: "").target = self
+        menu.addItem(withTitle: "Finish recording", action: #selector(stopRecording), keyEquivalent: "").target = self
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        menu.addItem(withTitle: "Quit Clips", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         statusItem.menu = menu
-        let main = NSMenu(); let item = NSMenuItem(); main.addItem(item); item.submenu = menu.copy() as? NSMenu
+        let main = NSMenu(); let app = NSMenuItem(); main.addItem(app); app.submenu = menu.copy() as? NSMenu
+        let edit = NSMenuItem(title: "Edit", action: nil, keyEquivalent: ""); main.addItem(edit)
+        let editing = NSMenu(title: "Edit"); edit.submenu = editing
+        editing.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        editing.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        editing.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        editing.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
         NSApp.mainMenu = main
-        uiTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.updateTimer() }
-        }
-        loadRecent(); updateState(); window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
-        if CommandLine.arguments.contains("--ui-smoke") {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in self?.runUISmoke() }
-        }
-    }
-
-    /// CI-only launch check. It does not request permissions or start any capture device.
-    func runUISmoke() {
-        do {
-            guard CommandLine.arguments.count == 3, let content = window.contentView, window.isVisible else {
-                throw ClipsError.invalidState("UI smoke test did not open a window.")
-            }
-            content.layoutSubtreeIfNeeded()
-            for control in [record!, pause!, stop!, recover!, trim!, share!, titleField, startField, endField, player] as [NSView] {
-                let frame = control.convert(control.bounds, to: content)
-                guard frame.width > 0, frame.height > 0, content.bounds.contains(frame) else {
-                    throw ClipsError.invalidState("A recording or review control is outside the window: \(frame).")
-                }
-            }
-            guard record.isEnabled, !stop.isEnabled, capture.state.value == .idle,
-                  let bitmap = content.bitmapImageRepForCachingDisplay(in: content.bounds) else {
-                throw ClipsError.invalidState("Initial recording controls are inconsistent.")
-            }
-            content.cacheDisplay(in: content.bounds, to: bitmap)
-            let folder = URL(fileURLWithPath: CommandLine.arguments[2])
-            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            guard let png = bitmap.representation(using: .png, properties: [:]) else {
-                throw ClipsError.invalidState("UI screenshot failed.")
-            }
-            try png.write(to: folder.appendingPathComponent("ui-smoke.png"))
-            let evidence: [String: Any] = ["uiLaunched": true, "controlsInWindow": true,
-                "hardwareValidated": false, "sourceCommit": ProcessInfo.processInfo.environment["GITHUB_SHA"] ?? "local"]
-            let data = try JSONSerialization.data(withJSONObject: evidence, options: [.prettyPrinted, .sortedKeys])
-            try data.write(to: folder.appendingPathComponent("ui-smoke.json"))
-            print(String(decoding: data, as: UTF8.self))
-            NSApp.terminate(nil)
-        } catch {
-            FileHandle.standardError.write(Data((error.localizedDescription + "\n").utf8))
-            exit(1)
-        }
-    }
-
-    func button(_ name: String, _ action: Selector) -> NSButton {
-        let value = NSButton(title: name, target: self, action: action); value.bezelStyle = .rounded; return value
-    }
-    func row(_ views: [NSView]) -> NSStackView {
-        let view = NSStackView(views: views); view.orientation = .horizontal; view.spacing = 10; return view
-    }
-    func updateState() {
-        let idle = capture.state.value == .idle && !editing
-        record.isEnabled = idle; refresh.isEnabled = idle; recover.isEnabled = idle && !packages.isEmpty
-        [mic, systemAudio, camera].forEach { $0.isEnabled = idle }
-        screenPicker.isEnabled = idle; recent.isEnabled = idle
-        pause.isEnabled = capture.state.value == .recording || capture.state.value == .paused
-        stop.isEnabled = pause.isEnabled
-        pause.title = capture.state.value == .paused ? "Resume" : "Pause"
-        trim.isEnabled = idle && selectedPackage != nil; rename.isEnabled = trim.isEnabled
-        share.isEnabled = idle && selectedExport != nil
-        statusItem?.button?.title = capture.state.value == .recording ? "● Clips" : capture.state.value == .paused ? "Ⅱ Clips" : "Clips"
-    }
-    func updateTimer() {
-        let seconds = Int(capture.elapsed); timer.stringValue = String(format: "%02d:%02d", seconds / 60, seconds % 60)
+        updateStatus(); showWindow()
+        if CommandLine.arguments.contains("--ui-smoke") { Task { await runUISmoke() } }
     }
     @objc func showWindow() { window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true) }
-    @objc func loadDisplays() {
-        Task {
-            do {
-                try await capture.refreshDisplays()
-                screenPicker.removeAllItems()
-                for display in capture.displays { screenPicker.addItem(withTitle: "Display \(display.displayID) · \(display.width)×\(display.height)") }
-                status.stringValue = "Display list updated. The entire selected display will be captured."
-            } catch { status.stringValue = error.localizedDescription }
-        }
-    }
-    @objc func start() {
-        player.player?.pause()
-        Task { await capture.start(displayIndex: screenPicker.indexOfSelectedItem,
-            microphone: mic.state == .on, systemAudio: systemAudio.state == .on, camera: camera.state == .on) }
-    }
-    @objc func togglePause() { capture.togglePause() }
-    @objc func stopRecording() { Task { _ = try? await capture.stop(); loadRecent(); updateState() } }
-    @objc func showFiles() {
-        try? FileManager.default.createDirectory(at: capture.root, withIntermediateDirectories: true)
-        NSWorkspace.shared.open(capture.root.deletingLastPathComponent())
-    }
-    func loadRecent() {
-        packages = RecordingStore.recordings(in: capture.root)
-        recent.removeAllItems()
-        for url in packages {
-            let store = try? RecordingStore(open: url)
-            recent.addItem(withTitle: "\(store?.manifest.title ?? "Unreadable recording") · \(store?.manifest.status.rawValue ?? "error")")
-        }
-        if packages.isEmpty { recent.addItem(withTitle: "No recordings yet") }
-    }
-    func display(package: URL, export: URL) {
-        selectedPackage = package; selectedExport = export
-        player.player = AVPlayer(url: export)
-        titleField.stringValue = (try? RecordingStore(open: package).manifest.title) ?? "Clip"
-        startField.stringValue = "0"
-        endField.stringValue = String(format: "%.2f", AVURLAsset(url: export).duration.seconds)
-        loadRecent(); updateState(); showWindow()
-    }
-    @objc func openRecent() {
-        let index = recent.indexOfSelectedItem
-        guard packages.indices.contains(index) else { return }
-        let package = packages[index]; editing = true; updateState(); status.stringValue = "Checking retained media and preparing playback…"
-        Task {
-            defer { editing = false; updateState() }
-            do { let result = try await MediaExport.export(package: package, to: capture.exportURL(prefix: "Recovered")); display(package: package, export: result) }
-            catch { status.stringValue = error.localizedDescription }
-        }
-    }
-    @objc func renameClip() {
-        guard let package = selectedPackage else { return }
-        do { try RecordingStore(open: package).rename(titleField.stringValue); loadRecent(); status.stringValue = "Title saved." }
-        catch { status.stringValue = error.localizedDescription }
-    }
-    @objc func exportTrim() {
-        guard let package = selectedPackage, let start = Double(startField.stringValue), let end = Double(endField.stringValue),
-              start.isFinite, end.isFinite, end > start, start >= 0 else { status.stringValue = "Enter valid start and end times in seconds."; return }
-        let panel = NSSavePanel(); panel.allowedContentTypes = [.mpeg4Movie]; panel.nameFieldStringValue = "Clip-trimmed.mp4"
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        editing = true; updateState(); status.stringValue = "Exporting trim. The original take is retained…"
-        Task {
-            defer { editing = false; updateState() }
-            do { let result = try await MediaExport.export(package: package, to: url, trim: start...end)
-                selectedExport = result; player.player = AVPlayer(url: result); status.stringValue = "Trim exported and checked."
-            } catch { status.stringValue = error.localizedDescription }
-        }
-    }
-    @objc func shareClip() {
-        guard let export = selectedExport else { return }
-        NSSharingServicePicker(items: [export]).show(relativeTo: share.bounds, of: share, preferredEdge: .minY)
+    @objc func pauseRecording() { model.pause() }
+    @objc func stopRecording() { model.stop() }
+    func updateStatus() {
+        statusItem.button?.title = model.phase == .recording ? "● Clips" : model.phase == .paused ? "Ⅱ Clips" : "Clips"
     }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        guard capture.state.value != .idle else { return .terminateNow }
-        if capture.state.value == .preparing { status.stringValue = "Wait for capture setup to finish, then quit."; return .terminateCancel }
-        Task { _ = try? await capture.stop(interrupted: true); NSApp.reply(toApplicationShouldTerminate: true) }
+        if model.busy { model.notice = "Wait for this export to finish, then quit."; return .terminateCancel }
+        guard model.capture.state.value != .idle else { return .terminateNow }
+        if model.capture.state.value == .preparing { model.notice = "Wait for capture setup to finish, then quit."; return .terminateCancel }
+        Task { _ = try? await model.capture.stop(interrupted: true); NSApp.reply(toApplicationShouldTerminate: true) }
         return .terminateLater
     }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool { showWindow(); return true }
+
+    // Renders the real native window using synthetic library media, without touching capture devices.
+    func runUISmoke() async {
+        do {
+            guard CommandLine.arguments.count == 5 else { throw ClipsError.invalidState("UI smoke requires output, package and movie paths.") }
+            let output = URL(fileURLWithPath: CommandLine.arguments[2])
+            let package = URL(fileURLWithPath: CommandLine.arguments[3])
+            let movie = URL(fileURLWithPath: CommandLine.arguments[4])
+            try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+            try await Task.sleep(nanoseconds: 700_000_000)
+            guard model.canRecord, model.phase == .idle, window.isVisible else { throw ClipsError.invalidState("App did not launch idle.") }
+            try render(output.appendingPathComponent("ui-record.png"))
+            guard let clip = model.readClip(package) else { throw ClipsError.invalidPackage("UI fixture was unreadable.") }
+            model.clips = [clip]; model.page = .library
+            try await Task.sleep(nanoseconds: 1_000_000_000)
+            try render(output.appendingPathComponent("ui-library.png"))
+            model.openReview(package: package, export: movie)
+            model.trimming = true; model.trimStart = 0.2; model.trimEnd = max(0.3, model.duration - 0.2)
+            try await Task.sleep(nanoseconds: 1_000_000_000)
+            try render(output.appendingPathComponent("ui-review.png"))
+            window.setContentSize(NSSize(width: 880, height: 640)); model.page = .record
+            try await Task.sleep(nanoseconds: 500_000_000)
+            try render(output.appendingPathComponent("ui-compact.png"))
+            let evidence: [String: Any] = ["uiLaunched": true, "hardwareValidated": false,
+                "screens": ["record", "library", "review", "compact"],
+                "sourceCommit": ProcessInfo.processInfo.environment["GITHUB_SHA"] ?? "local"]
+            let data = try JSONSerialization.data(withJSONObject: evidence, options: [.prettyPrinted, .sortedKeys])
+            try data.write(to: output.appendingPathComponent("ui-smoke.json"))
+            print(String(decoding: data, as: UTF8.self)); NSApp.terminate(nil)
+        } catch {
+            FileHandle.standardError.write(Data((error.localizedDescription + "\n").utf8)); exit(1)
+        }
+    }
+    func render(_ destination: URL) throws {
+        guard let view = window.contentView else { throw ClipsError.invalidState("No native content view.") }
+        view.layoutSubtreeIfNeeded(); view.displayIfNeeded()
+        guard let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { throw ClipsError.invalidState("No window bitmap.") }
+        view.cacheDisplay(in: view.bounds, to: bitmap)
+        guard let png = bitmap.representation(using: .png, properties: [:]), png.count > 10_000 else {
+            throw ClipsError.invalidState("The native window rendering was empty.")
+        }
+        try png.write(to: destination)
+    }
 }
 
-// AppKit starts on the process main thread; keep application setup on its actor.
 MainActor.assumeIsolated {
     let application = NSApplication.shared
     let delegate = AppDelegate()

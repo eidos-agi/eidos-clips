@@ -6,7 +6,9 @@ Eidos Clips is a native screen recorder prototype for clear demonstrations, walk
 
 **Status: first native prototype; physical Mac validation and release signing are pending.** This repository now includes the application, core/media tests, development packaging, and a macOS CI workflow. See [implementation status](docs/IMPLEMENTATION.md) for implemented features and the remaining gates. A green synthetic test is not evidence that real screen, camera, microphone, or speaker capture works.
 
-## Build and try it
+## Build and release
+
+The app now separates **New recording**, **Your clips**, and **Review clip**. Recording has one primary action and optional input switches. The library has thumbnails and title search. Review provides playback, title editing, trim sliders, export, and sharing.
 
 On a Mac with Xcode 16.4 selected:
 
@@ -15,11 +17,19 @@ swift test
 bash scripts/build-app.sh
 ```
 
-Unzip `dist/EidosClips-macOS.zip` and open `EidosClips.app`. The app is development signed by default; this is not a notarized download. CI artifacts include the zipped app, its SHA-256, toolchain information, test log, and synthetic recovery evidence when all checks pass. The development bundle ID is `org.eidos.clips`, pending ownership confirmation before release.
+This produces `dist/EidosClips-Development-macOS.zip`, containing **Eidos Clips Dev** with a separate development bundle identity. It is an engineering artifact, not a notarized download.
 
-Choose a display and grant Screen Recording permission in System Settings. Enable the optional microphone, system audio, and camera before pressing Record. Pause/Resume and Stop are also available in the menu bar. Stop validates the recording and opens playback. Use Recover / Open for retained takes, or enter start/end seconds and Export trim. Files remain under `~/Movies/Eidos Clips/`; Share opens the macOS share sheet for an exported file.
+For an installable company release, use a clean checkout on the Eidos signing Mac:
 
-Current capture is **whole display only**, up to 1920 pixels wide at a nominal 30 fps. Camera uses a floating preview window on that display. Window/region capture, device pickers, meters, live mute/camera controls, remembered presets, search/trash, and agent handoff are still planned. The app prevents starting another capture while an export is running.
+```sh
+bash scripts/release-app.sh
+```
+
+The release script uses the existing **Developer ID Application: Eidos AGI LLC (Y6CQ4SWPWM)** identity and **eidos-notary** keychain profile, enables hardened runtime and camera/mic entitlements, submits to Apple, staples the accepted ticket, verifies Gatekeeper, and repacks the stapled application. It refuses an unsigned fallback and never replaces an installed app. See [signing and release](docs/SIGNING.md), grounded in Eidos's desktop build repository. The signed release still requires execution on that Mac; the Linux authoring session and ordinary CI runner do not have its private key.
+
+Choose a display, select optional inputs, then Start recording. Pause and Finish are also available in the menu bar. Your clips stay under `~/Movies/Eidos Clips/`. Click a clip to review or recover completed media. Trim exports keep the original.
+
+Current capture is **whole display only**, at most 1920 pixels wide at a nominal 30 fps. Camera uses a floating preview window on that display. Window/region capture, device pickers, meters, live mute/camera controls, remembered presets, trash, and agent handoff remain planned. The app prevents new capture while exporting.
 
 ## The product we are building
 

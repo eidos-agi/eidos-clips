@@ -1,4 +1,4 @@
-name: Native macOS foundation
+name: Native macOS build and review
 on:
   push:
     branches: [main, 'codex/**']
@@ -28,15 +28,25 @@ jobs:
       - name: Launch app and check visible controls without capture
         run: |
           python3 - <<'PY'
-          import pathlib, subprocess
-          subprocess.run(['.build/release/EidosClips', '--ui-smoke', str(pathlib.Path('dist').resolve())], check=True, timeout=20)
+          import base64, json, pathlib, subprocess, tempfile
+          with tempfile.TemporaryDirectory(prefix='clips-ui-') as folder:
+              probe = str(pathlib.Path('.build/release/clips-probe').resolve())
+              result = subprocess.run([probe, 'record', folder, '2'], check=True, text=True, capture_output=True, timeout=40)
+              package = json.loads(result.stdout.splitlines()[0])['package']
+              movie = str(pathlib.Path(folder) / 'preview.mp4')
+              subprocess.run([probe, 'recover', package, movie], check=True, timeout=40)
+              subprocess.run(['.build/release/EidosClips', '--ui-smoke', str(pathlib.Path('dist').resolve()), package, movie], check=True, timeout=30)
+          for path in sorted(pathlib.Path('dist').glob('ui-*.png')):
+              encoded = base64.b64encode(path.read_bytes()).decode()
+              for index in range(0, len(encoded), 5000):
+                  print('CLIPS_UI_IMAGE', path.name, index // 5000, encoded[index:index+5000])
           PY
       - name: Decode synthetic normal, paused, trimmed and interrupted recordings
         run: python3 scripts/recovery-probe.py .build/release/clips-probe dist/foundation-evidence.json
       - name: Upload application and evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: EidosClips-macOS-${{ github.sha }}
+          name: EidosClips-Development-${{ github.sha }}
           path: dist/
           if-no-files-found: error
           retention-days: 14
