@@ -46,6 +46,13 @@ final class ClipsModel: ObservableObject {
     var configureWindow: (() -> Void)?
     @Published var page: ClipsPage = .record
     @Published var phase: CaptureState = .idle
+    @Published var countdown = 0
+    @Published var countdownEnabled = true
+    private var countdownTask: Task<Void, Never>?
+    @Published var microphoneID: String?
+    @Published var cameraID: String?
+    @Published var microphoneDevices: [AVCaptureDevice] = []
+    @Published var cameraDevices: [AVCaptureDevice] = []
     @Published var microphone = true
     @Published var systemAudio = false
     @Published var camera = false
@@ -70,16 +77,18 @@ final class ClipsModel: ObservableObject {
     var showWindow: (() -> Void)?
     var stateChanged: (() -> Void)?
     private var timer: Timer?
-    var active: Bool { phase != .idle }
+    var active: Bool { phase != .idle || countdown > 0 }
     var canRecord: Bool { !active && !busy }
     var filteredClips: [LibraryClip] { clips.filter { search.isEmpty || $0.title.localizedCaseInsensitiveContains(search) } }
     var displayName: String { displayNames.indices.contains(displayIndex) ? displayNames[displayIndex] : "Choose a display" }
 
     init() {
-        for descriptor in [nearby.descriptor, drawing.pointer.descriptor, exportAdapter.descriptor, editProvider.descriptor, folderDestination.descriptor,
-            ModuleDescriptor(id: "org.eidos.diagnostics.outbox", name: "Diagnostic outbox", capabilities: [.diagnostics])] {
-            try? registry.register(descriptor)
-        }
+        do {
+            try registry.register(drawing: drawing.pointer); try registry.register(drawing: nearby)
+            try registry.register(exporter: exportAdapter); try registry.register(editor: editProvider)
+            try registry.register(destination: folderDestination)
+            try registry.register(ModuleDescriptor(id: "org.eidos.diagnostics.outbox", name: "Diagnostic outbox", capabilities: [.diagnostics]))
+        } catch { notice = error.localizedDescription }
         nearby.onOperation = { [weak self] in self?.drawing.accept($0) }
         nearby.onConnection = { [weak self] approved in
             guard let self else { return }
@@ -115,6 +124,13 @@ final class ClipsModel: ObservableObject {
         timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.elapsed = self?.capture.elapsed ?? 0 }
         }
+        let preferences = UserDefaults.standard
+        microphone = preferences.object(forKey: "microphone") as? Bool ?? true
+        systemAudio = preferences.bool(forKey: "systemAudio"); camera = preferences.bool(forKey: "camera")
+        countdownEnabled = preferences.object(forKey: "countdown") as? Bool ?? true
+        microphoneID = preferences.string(forKey: "microphoneID"); cameraID = preferences.string(forKey: "cameraID")
+        microphoneDevices = AVCaptureDevice.devices(for: .audio); cameraDevices = AVCaptureDevice.devices(for: .video)
+        if let path = preferences.string(forKey: "recordingsPath") { capture.root = URL(fileURLWithPath: path, isDirectory: true) }
         refreshLibrary()
     }
 
@@ -146,7 +162,28 @@ final class ClipsModel: ObservableObject {
         DiagnosticLog.shared.record(.commandAccepted)
         drawing.reset()
         if nearby.approved { _ = drawing.useRemote(); synchronizeDevice() }
-        Task { await capture.start(displayID: selectedDisplayID, region: region, microphone: microphone, systemAudio: systemAudio, camera: camera) }
+        let preferences = UserDefaults.standard
+        preferences.set(microphone, forKey: "microphone"); preferences.set(systemAudio, forKey: "systemAudio"); preferences.set(camera, forKey: "camera")
+        preferences.set(microphoneID, forKey: "microphoneID"); preferences.set(cameraID, forKey: "cameraID"); preferences.set(countdownEnabled, forKey: "countdown")
+        countdown = countdownEnabled ? 3 : 0
+        countdownTask = Task {
+            while countdown > 0 {
+                do { try await Task.sleep(nanoseconds: 1_000_000_000) } catch { return }
+                guard !Task.isCancelled else { return }; countdown -= 1
+            }
+            guard !Task.isCancelled else { return }
+            await capture.start(displayID: selectedDisplayID, region: region, microphone: microphone, systemAudio: systemAudio, camera: camera, microphoneID: microphoneID, cameraID: cameraID)
+            countdownTask = nil
+        }
+    }
+    func cancelPreparation() { countdownTask?.cancel(); countdownTask = nil; countdown = 0; capture.cancelPreparation(); notice = "Recording preparation cancelled." }
+    func chooseRecordingFolder() {
+        guard canRecord else { return }
+        let panel = NSOpenPanel(); panel.canChooseDirectories = true; panel.canChooseFiles = false; panel.canCreateDirectories = true
+        panel.prompt = "Use for recordings"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        capture.root = url.appendingPathComponent("Recordings", isDirectory: true)
+        UserDefaults.standard.set(capture.root.path, forKey: "recordingsPath"); refreshLibrary()
     }
     func pause() { capture.togglePause() }
     func stop() {
@@ -245,8 +282,10 @@ final class ClipsModel: ObservableObject {
             do {
                 let input = try artifact(for: selected.package)
                 let request = JobRequest(adapter: exportAdapter.descriptor, input: input); jobGate.begin(request)
-                let recipe = trimming ? try editProvider.recipe(duration: duration, selection: EditRange(trimStart, trimEnd), removeSelection: removeSelection) : nil
-                let result = try await exportAdapter.run(package: selected.package, request: request, to: url, recipe: recipe) { value in Task { @MainActor in self.jobProgress = value } }
+                guard !trimming || registry.editor(editProvider.descriptor.id) != nil else { throw ModuleError.invalid("Editing module is disabled.") }
+                let recipe = trimming ? try registry.editor(editProvider.descriptor.id)?.recipe(duration: duration, selection: EditRange(trimStart, trimEnd), removeSelection: removeSelection) : nil
+                guard let exporter = registry.exporter(exportAdapter.descriptor.id) else { throw ModuleError.invalid("Export is unavailable.") }
+                let result = try await exporter.run(package: selected.package, request: request, to: url, recipe: recipe, progress: { value in Task { @MainActor in self.jobProgress = value } })
                 guard jobGate.finish(request, input: try artifact(for: selected.package)) else { throw CancellationError() }
                 exportedURL = result
                 if let recipe { try JSONEncoder().encode(recipe).write(to: result.deletingPathExtension().appendingPathExtension("edit.json"), options: .atomic) }
@@ -285,7 +324,7 @@ final class ClipsModel: ObservableObject {
         if modulesEnabled { drawing.show(frame: frame, interactive: false) }; synchronizeDevice()
     }
     func toggleDrawing() {
-        guard modulesEnabled, phase == .recording || phase == .paused else { return }
+        guard registry.drawingInput(drawing.pointer.descriptor.id) != nil, phase == .recording || phase == .paused else { return }
         if nearby.approved { nearby.deactivate(); drawing.usePointer() }
         drawing.setInteractive(!drawing.enabled)
     }
@@ -353,7 +392,8 @@ final class ClipsModel: ObservableObject {
             do {
                 let input = ArtifactReference(id: UUID(), sha256: try RecordingStore.digest(source), revision: 1)
                 let request = JobRequest(adapter: folderDestination.descriptor, input: input)
-                _ = try await folderDestination.deliver(source, request: request, to: destination)
+                guard let adapter = registry.destination(folderDestination.descriptor.id) else { throw ModuleError.invalid("Folder delivery module is disabled.") }
+                _ = try await adapter.deliver(source, request: request, to: destination)
                 notice = "Verified copy saved."
             } catch { notice = error.localizedDescription }
         }

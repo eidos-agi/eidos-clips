@@ -20,6 +20,6 @@ let package = Package(
         .executableTarget(name: "ClipsProbe", dependencies: ["ClipsCore", "ClipsMedia", "ClipsFixtures"]),
         .testTarget(name: "ClipsModulesTests", dependencies: ["ClipsModules"]),
         .testTarget(name: "ClipsCoreTests", dependencies: ["ClipsCore"]),
-        .testTarget(name: "ClipsMediaTests", dependencies: ["ClipsCore", "ClipsMedia", "ClipsFixtures"]),
+        .testTarget(name: "ClipsMediaTests", dependencies: ["ClipsCore", "ClipsMedia", "ClipsFixtures", "ClipsModules"]),
     ]
 )

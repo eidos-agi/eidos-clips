@@ -3,6 +3,7 @@ import AVFoundation
 import ClipsCore
 import ClipsMedia
 import ClipsFixtures
+import ClipsModules
 
 final class MediaTests: XCTestCase {
     func testRequestedAudioCannotSilentlyDisappear() async throws {
@@ -39,6 +40,20 @@ final class MediaTests: XCTestCase {
         XCTAssertEqual(try MediaExport.decodedSamples(at: full), 30)
         let trim = try await MediaExport.export(package: package, to: root.appendingPathComponent("trim.mp4"), trim: 0.2...0.7)
         XCTAssertEqual(AVURLAsset(url: trim).duration.seconds, 0.5, accuracy: 0.05)
+        let cut = try await MediaExport.export(package: package, to: root.appendingPathComponent("cut.mp4"), recipe: EditRecipe(ranges: [EditRange(0, 0.3), EditRange(0.7, 1)]))
+        XCTAssertEqual(try MediaExport.decodedSamples(at: cut), 18)
+        XCTAssertEqual(AVURLAsset(url: cut).duration.seconds, 0.6, accuracy: 0.05)
+        let destination = LocalFolderDestination()
+        let reference = ArtifactReference(id: store.manifest.id, sha256: try RecordingStore.digest(cut), revision: 1)
+        let request = JobRequest(adapter: destination.descriptor, input: reference)
+        let copy = root.appendingPathComponent("copy.mp4")
+        let firstReceipt = try await destination.deliver(cut, request: request, to: copy)
+        let retryReceipt = try await destination.deliver(cut, request: request, to: copy)
+        XCTAssertEqual(firstReceipt, retryReceipt)
+        do {
+            _ = try await destination.deliver(full, request: request, to: copy)
+            XCTFail("Wrong artifact must not be delivered")
+        } catch {}
         do {
             _ = try await MediaExport.export(package: package, to: full)
             XCTFail("Existing destination must not be overwritten")

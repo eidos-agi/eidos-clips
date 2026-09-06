@@ -1,0 +1,27 @@
+// !$*UTF8*$!
+{ archiveVersion = 1; classes = {}; objectVersion = 56; objects = {
+FB501C0E26CEECB123E6FA08 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ClipsDraw/ClipsDrawApp.swift"; sourceTree = SOURCE_ROOT; };
+768CB18D7DC115501212B6EA = {isa = PBXBuildFile; fileRef = FB501C0E26CEECB123E6FA08; };
+175246F94D7AF5946077BBE6 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../Sources/ClipsModules/Annotation.swift"; sourceTree = SOURCE_ROOT; };
+CD6AD531DA44300DC5498883 = {isa = PBXBuildFile; fileRef = 175246F94D7AF5946077BBE6; };
+740EC3C57279C7433B4714CC = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../Sources/ClipsModules/Diagnostics.swift"; sourceTree = SOURCE_ROOT; };
+25AD08AB931C8364ED26F364 = {isa = PBXBuildFile; fileRef = 740EC3C57279C7433B4714CC; };
+8B794105152375B9F79E5C90 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../Sources/ClipsModules/Extensions.swift"; sourceTree = SOURCE_ROOT; };
+CEA281AA74FCDB64FE41077C = {isa = PBXBuildFile; fileRef = 8B794105152375B9F79E5C90; };
+5BDB00EA0CE739AD6584BC38 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../Sources/ClipsModules/Pairing.swift"; sourceTree = SOURCE_ROOT; };
+52E68D83729923A13A3E4743 = {isa = PBXBuildFile; fileRef = 5BDB00EA0CE739AD6584BC38; };
+B096F291204C22FDA4F67538 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../Sources/ClipsModules/PeerLink.swift"; sourceTree = SOURCE_ROOT; };
+141D9628CC6D19A4146E2CBE = {isa = PBXBuildFile; fileRef = B096F291204C22FDA4F67538; };
+38A007151ABE87CC01A5B6E9 = {isa = PBXFileReference; explicitFileType = wrapper.application; path = "ClipsDraw.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+64292B1C2B2E13EAD8788FC8 = {isa = PBXGroup; children = (FB501C0E26CEECB123E6FA08,175246F94D7AF5946077BBE6,740EC3C57279C7433B4714CC,8B794105152375B9F79E5C90,5BDB00EA0CE739AD6584BC38,B096F291204C22FDA4F67538,FBDC4F23F93125BBEEAE800C); sourceTree = "<group>"; };
+FBDC4F23F93125BBEEAE800C = {isa = PBXGroup; children = (38A007151ABE87CC01A5B6E9); name = Products; sourceTree = "<group>"; };
+BCE16DD0260827ECF338C787 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (768CB18D7DC115501212B6EA,CD6AD531DA44300DC5498883,25AD08AB931C8364ED26F364,CEA281AA74FCDB64FE41077C,52E68D83729923A13A3E4743,141D9628CC6D19A4146E2CBE); runOnlyForDeploymentPostprocessing = 0; };
+89E1FD6268CC0F221A2BE178 = {isa = XCBuildConfiguration; buildSettings = { CLANG_ENABLE_MODULES = YES; SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SWIFT_VERSION = 5.0; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Debug; };
+E6DE6C99132752C914FEF632 = {isa = XCBuildConfiguration; buildSettings = { CLANG_ENABLE_MODULES = YES; SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SWIFT_VERSION = 5.0; SWIFT_OPTIMIZATION_LEVEL = "-O"; }; name = Release; };
+862894B703A6DEDF96A9DD6C = {isa = XCConfigurationList; buildConfigurations = (89E1FD6268CC0F221A2BE178,E6DE6C99132752C914FEF632); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+7082CC0B6FC1282FCEABD07A = {isa = XCBuildConfiguration; buildSettings = { CLANG_ENABLE_MODULES = YES; SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SWIFT_VERSION = 5.0; PRODUCT_NAME = ClipsDraw; PRODUCT_BUNDLE_IDENTIFIER = org.eidos.clips.draw; INFOPLIST_FILE = ClipsDraw/Info.plist; TARGETED_DEVICE_FAMILY = 2; DEVELOPMENT_TEAM = Y6CQ4SWPWM; CODE_SIGN_STYLE = Automatic; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Debug; };
+639A7CA24D39909E713B47F7 = {isa = XCBuildConfiguration; buildSettings = { CLANG_ENABLE_MODULES = YES; SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SWIFT_VERSION = 5.0; PRODUCT_NAME = ClipsDraw; PRODUCT_BUNDLE_IDENTIFIER = org.eidos.clips.draw; INFOPLIST_FILE = ClipsDraw/Info.plist; TARGETED_DEVICE_FAMILY = 2; DEVELOPMENT_TEAM = Y6CQ4SWPWM; CODE_SIGN_STYLE = Automatic; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_OPTIMIZATION_LEVEL = "-O"; }; name = Release; };
+C57128001CE614BF8549D6BB = {isa = XCConfigurationList; buildConfigurations = (7082CC0B6FC1282FCEABD07A,639A7CA24D39909E713B47F7); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+0E8A3AD980EC179856012B7E = {isa = PBXNativeTarget; buildConfigurationList = C57128001CE614BF8549D6BB; buildPhases = (BCE16DD0260827ECF338C787); buildRules = (); dependencies = (); name = ClipsDraw; productName = ClipsDraw; productReference = 38A007151ABE87CC01A5B6E9; productType = "com.apple.product-type.application"; };
+98F54143AB4E86B28C3AFEE0 = {isa = PBXProject; attributes = { LastUpgradeCheck = 1640; }; buildConfigurationList = 862894B703A6DEDF96A9DD6C; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base); mainGroup = 64292B1C2B2E13EAD8788FC8; productRefGroup = FBDC4F23F93125BBEEAE800C; projectDirPath = ""; projectRoot = ""; targets = (0E8A3AD980EC179856012B7E); };
+}; rootObject = 98F54143AB4E86B28C3AFEE0; }

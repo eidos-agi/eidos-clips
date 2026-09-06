@@ -64,7 +64,7 @@ final class CaptureSink: NSObject, SCStreamOutput, SCStreamDelegate, AVCaptureAu
 
 @MainActor
 final class CaptureController {
-    let root = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Movies/Eidos Clips/Recordings")
+    var root = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Movies/Eidos Clips/Recordings")
     var state = SessionState()
     var changed: (() -> Void)?
     var report: ((String) -> Void)?
@@ -93,7 +93,7 @@ final class CaptureController {
         changed?()
     }
 
-    func start(displayID: UInt32?, region: CaptureRegion?, microphone: Bool, systemAudio: Bool, camera: Bool) async {
+    func start(displayID: UInt32?, region: CaptureRegion?, microphone: Bool, systemAudio: Bool, camera: Bool, microphoneID: String? = nil, cameraID: String? = nil) async {
         guard state.value == .idle else { return }
         pendingFailure = nil
         do {
@@ -103,15 +103,20 @@ final class CaptureController {
             guard !displays.isEmpty else { throw ClipsError.media("No display is available.") }
             guard let display = displayID == nil ? displays.first : displays.first(where: { $0.displayID == displayID }) else { throw ClipsError.media("The selected display disconnected. Choose a display again.") }
             if microphone {
-                guard await AVCaptureDevice.requestAccess(for: .audio) else {
+                let granted = await AVCaptureDevice.requestAccess(for: .audio)
+                DiagnosticLog.shared.record(.permissionResult, [.microphone: 1, .success: granted ? 1 : 0])
+                guard granted else {
                     throw ClipsError.media("Microphone access was denied. Allow it or turn microphone recording off before starting.")
                 }
             }
             if camera {
-                guard await AVCaptureDevice.requestAccess(for: .video) else {
+                let granted = await AVCaptureDevice.requestAccess(for: .video)
+                DiagnosticLog.shared.record(.permissionResult, [.camera: 1, .success: granted ? 1 : 0])
+                guard granted else {
                     throw ClipsError.media("Camera access was denied. Allow it or turn the camera off before starting.")
                 }
             }
+            if let pendingFailure { throw pendingFailure }
             let origin = SegmentedRecorder.hostTime
             clock = SessionClock(origin: origin)
             var required: Set<TrackKind> = [.video]
@@ -129,7 +134,7 @@ final class CaptureController {
             let session = AVCaptureSession()
             session.beginConfiguration()
             if microphone {
-                guard let mic = AVCaptureDevice.default(for: .audio) else { throw ClipsError.media("No microphone is connected.") }
+                guard let mic = microphoneID == nil ? AVCaptureDevice.default(for: .audio) : AVCaptureDevice.devices(for: .audio).first(where: { $0.uniqueID == microphoneID }) else { throw ClipsError.media("No microphone is connected.") }
                 let input = try AVCaptureDeviceInput(device: mic)
                 guard session.canAddInput(input) else { throw ClipsError.media("Cannot use the selected microphone.") }
                 session.addInput(input)
@@ -139,7 +144,7 @@ final class CaptureController {
                 session.addOutput(output)
             }
             if camera {
-                guard let device = AVCaptureDevice.default(for: .video) else { throw ClipsError.media("No camera is connected.") }
+                guard let device = cameraID == nil ? AVCaptureDevice.default(for: .video) : AVCaptureDevice.devices(for: .video).first(where: { $0.uniqueID == cameraID }) else { throw ClipsError.media("No camera is connected.") }
                 let input = try AVCaptureDeviceInput(device: device)
                 guard session.canAddInput(input) else { throw ClipsError.media("Cannot use the camera.") }
                 session.addInput(input)
@@ -196,6 +201,7 @@ final class CaptureController {
         }
     }
 
+    func cancelPreparation() { if state.value == .preparing { pendingFailure = CancellationError() } }
     func togglePause() {
         let now = SegmentedRecorder.hostTime
         do {

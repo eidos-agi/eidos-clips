@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem!
     var hud: NSPanel!
     var lastPhase: CaptureState = .idle
+    let shortcuts = GlobalShortcuts()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 420, height: 440),
@@ -47,6 +48,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         editing.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
         editing.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
         NSApp.mainMenu = main
+        shortcuts.action = { [weak self] id in
+            guard let self else { return }
+            if id == 2 { self.model.stop() }
+            else if self.model.countdown > 0 || self.model.phase == .preparing { self.model.cancelPreparation() }
+            else if self.model.active { self.model.pause() }
+            else { self.model.start() }
+        }
+        shortcuts.install()
+        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in if self?.model.active == true { _ = try? await self?.model.capture.stop(interrupted: true) } }
+        }
+        if !shortcuts.registered { model.notice = "Global shortcuts are unavailable. Use the recording strip or menu bar." }
         updateStatus(); showWindow()
         if CommandLine.arguments.contains("--ui-smoke") { Task { await runUISmoke() } }
     }
@@ -66,7 +79,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         statusItem.button?.title = model.phase == .recording ? "● Clips" : model.phase == .paused ? "Ⅱ Clips" : "Clips"
     }
-    func applicationWillTerminate(_ notification: Notification) { DiagnosticLog.shared.flush() }
+    func applicationWillTerminate(_ notification: Notification) { shortcuts.uninstall(); DiagnosticLog.shared.flush() }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         if model.busy { model.notice = "Wait for this export to finish, then quit."; return .terminateCancel }
         guard model.capture.state.value != .idle else { return .terminateNow }
@@ -103,7 +116,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             try render(output.appendingPathComponent("ui-hud.png"), view: hud.contentView)
             model.phase = .idle; hud.orderOut(nil)
             let evidence: [String: Any] = ["uiLaunched": true, "hardwareValidated": false,
-                "screens": ["record", "library", "review", "compact"],
+                "screens": ["record", "library", "review", "compact", "hud"], "globalShortcutsRegistered": shortcuts.registered,
                 "sourceCommit": ProcessInfo.processInfo.environment["GITHUB_SHA"] ?? "local"]
             let data = try JSONSerialization.data(withJSONObject: evidence, options: [.prettyPrinted, .sortedKeys])
             try data.write(to: output.appendingPathComponent("ui-smoke.json"))

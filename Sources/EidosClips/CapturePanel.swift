@@ -16,6 +16,16 @@ struct CapturePanel: View {
                 Button { model.navigate(.library) } label: { Image(systemName: "square.grid.2x2").font(.system(size: 16)) }
                     .buttonStyle(.plain).help("Your clips").disabled(model.active)
                 Menu {
+                    Toggle("Three-second countdown", isOn: $model.countdownEnabled)
+                    Menu("Microphone") {
+                        Button("System default") { model.microphoneID = nil }
+                        ForEach(model.microphoneDevices, id: \.uniqueID) { device in Button(device.localizedName) { model.microphoneID = device.uniqueID } }
+                    }
+                    Menu("Camera") {
+                        Button("System default") { model.cameraID = nil }
+                        ForEach(model.cameraDevices, id: \.uniqueID) { device in Button(device.localizedName) { model.cameraID = device.uniqueID } }
+                    }
+                    Button("Choose recording folder…") { model.chooseRecordingFolder() }
                     Toggle("Drawing & editing modules", isOn: Binding(get: { model.modulesEnabled }, set: { model.setModulesEnabled($0) }))
                     Button("Connect drawing device…") { showDevice = true }.disabled(!model.modulesEnabled)
                     Button("Save diagnostic report") { model.diagnosticReport() }
@@ -55,7 +65,9 @@ struct CapturePanel: View {
                     input("Camera", symbol: "video", value: $model.camera)
                 }.padding(.vertical, 14)
             }.background(ClipsStyle.surface, in: RoundedRectangle(cornerRadius: 12)).disabled(model.active || model.busy)
-            if model.active {
+            if model.countdown > 0 || model.phase == .preparing {
+                HStack { Text(model.countdown > 0 ? "Starting in \(model.countdown)…" : "Preparing…").font(.title3); Spacer(); Button("Cancel") { model.cancelPreparation() }.buttonStyle(QuietButton()) }
+            } else if model.active {
                 HStack {
                     Text(ClipsModel.time(model.elapsed)).font(.system(size: 24, weight: .medium, design: .monospaced))
                     Spacer()

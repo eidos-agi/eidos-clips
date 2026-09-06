@@ -4,6 +4,7 @@ cd "$(dirname "$0")/.."
 # Simulator output is explicitly not a provisioned iPad application.
 app='dist/Clips Draw Simulator.app'
 mkdir -p "$app"
+xcodebuild -list -project Companion/ClipsDraw.xcodeproj
 sdk="$(xcrun --sdk iphonesimulator --show-sdk-path)"
 xcrun swiftc -swift-version 5 -O -sdk "$sdk" -target arm64-apple-ios17.0-simulator \
   -parse-as-library Sources/ClipsModules/*.swift Companion/ClipsDraw/ClipsDrawApp.swift \

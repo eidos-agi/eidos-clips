@@ -20,6 +20,10 @@ public struct ModuleDescriptor: Codable, Equatable, Identifiable {
 @MainActor public final class ExtensionRegistry {
     public private(set) var modules: [ModuleDescriptor] = []
     private var disabled: Set<String> = []
+    private var drawingInputs: [String: any DrawingInputAdapter] = [:]
+    private var editors: [String: any EditProvider] = [:]
+    private var destinations: [String: any DestinationAdapter] = [:]
+    private var exporters: [String: any ExportProvider] = [:]
     public init() {}
     public func register(_ module: ModuleDescriptor) throws {
         guard module.version > 0, !module.id.isEmpty, !modules.contains(where: { $0.id == module.id }) else {
@@ -27,6 +31,17 @@ public struct ModuleDescriptor: Codable, Equatable, Identifiable {
         }
         modules.append(module)
     }
+    public func register(drawing input: any DrawingInputAdapter) throws {
+        guard input.descriptor.capabilities.contains(.drawingInput) else { throw ModuleError.invalid("Drawing capability is required.") }
+        try register(input.descriptor); drawingInputs[input.descriptor.id] = input
+    }
+    public func register(editor: any EditProvider) throws { try register(editor.descriptor); editors[editor.descriptor.id] = editor }
+    public func register(destination: any DestinationAdapter) throws { try register(destination.descriptor); destinations[destination.descriptor.id] = destination }
+    public func register(exporter: any ExportProvider) throws { try register(exporter.descriptor); exporters[exporter.descriptor.id] = exporter }
+    public func drawingInput(_ id: String) -> (any DrawingInputAdapter)? { isEnabled(id, capability: .drawingInput) ? drawingInputs[id] : nil }
+    public func editor(_ id: String) -> (any EditProvider)? { isEnabled(id, capability: .editing) ? editors[id] : nil }
+    public func destination(_ id: String) -> (any DestinationAdapter)? { isEnabled(id, capability: .destination) ? destinations[id] : nil }
+    public func exporter(_ id: String) -> (any ExportProvider)? { isEnabled(id, capability: .processing) ? exporters[id] : nil }
     public func setEnabled(_ enabled: Bool, id: String) { if enabled { disabled.remove(id) } else { disabled.insert(id) } }
     public func isEnabled(_ id: String, capability: ModuleCapability) -> Bool {
         !disabled.contains(id) && modules.contains { $0.id == id && $0.capabilities.contains(capability) }
@@ -114,4 +129,9 @@ public struct BasicEditProvider: EditProvider {
         let result = removeSelection ? EditRecipe(ranges: [EditRange(0, selection.start), EditRange(selection.end, duration)].filter { $0.end - $0.start > 0.01 }) : selected
         try result.validate(duration: duration); return result
     }
+}
+
+public protocol ExportProvider {
+    var descriptor: ModuleDescriptor { get }
+    func run(package: URL, request: JobRequest, to destination: URL, recipe: EditRecipe?, progress: @escaping (Double) -> Void) async throws -> URL
 }

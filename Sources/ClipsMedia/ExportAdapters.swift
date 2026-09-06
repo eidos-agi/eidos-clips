@@ -2,7 +2,7 @@ import Foundation
 import ClipsCore
 import ClipsModules
 
-public struct NativeExportAdapter {
+public struct NativeExportAdapter: ExportProvider {
     public let descriptor = ModuleDescriptor(id: "org.eidos.export.mp4", name: "MP4 export", capabilities: [.processing])
     public init() {}
     public func run(package: URL, request: JobRequest, to destination: URL, recipe: EditRecipe? = nil,

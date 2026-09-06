@@ -131,7 +131,8 @@ public final class SegmentedRecorder: @unchecked Sendable {
         }
         // Wait on the writer queue, never a capture callback. Cold native encoders can
         // take longer than a frame interval. The bounded ingress remains the load limit.
-        let deadline = DispatchTime.now().uptimeNanoseconds + 3_000_000_000
+        let waitStart = DispatchTime.now().uptimeNanoseconds
+        let deadline = waitStart + 3_000_000_000
         while !current.input.isReadyForMoreMediaData && current.writer.status == .writing &&
                 DispatchTime.now().uptimeNanoseconds < deadline {
             ingressLock.lock(); let overloaded = overloadReported; ingressLock.unlock()
@@ -141,6 +142,8 @@ public final class SegmentedRecorder: @unchecked Sendable {
         guard current.input.isReadyForMoreMediaData else {
             throw current.writer.error ?? ClipsError.media("The encoder remained unavailable for 3 seconds. Completed media was retained.")
         }
+        let waitMs = Double(DispatchTime.now().uptimeNanoseconds - waitStart) / 1_000_000
+        if waitMs >= 1 { DiagnosticLog.shared.record(.encoderWait, [.waitMs: waitMs]) }
         let adjusted = try retime(sample, presentation: mapped)
         guard current.input.append(adjusted) else {
             throw current.writer.error ?? ClipsError.media("A media write failed.")
@@ -192,8 +195,8 @@ public final class SegmentedRecorder: @unchecked Sendable {
         guard try MediaExport.decodedSamples(at: part.url, kind: part.kind) > 0 else {
             throw ClipsError.media("The saved segment cannot be decoded.")
         }
-        DiagnosticLog.shared.record(.segmentCommitted, [.durationMs: (part.end - part.start) * 1000])
         try store.commit(file: part.url, kind: part.kind, start: part.start, duration: part.end - part.start)
+        DiagnosticLog.shared.record(.segmentCommitted, [.durationMs: (part.end - part.start) * 1000])
     }
 
     private func retime(_ sample: CMSampleBuffer, presentation: Double) throws -> CMSampleBuffer {

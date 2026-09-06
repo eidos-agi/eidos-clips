@@ -50,7 +50,11 @@ public struct DiagnosticPacket: Codable {
 /// Bounded in-memory ingress; disk I/O happens on one utility queue, never a media callback.
 /// There is deliberately no free-form message, path, device name, media or network credential API.
 public final class DiagnosticLog {
+    #if os(macOS)
     public static let shared = DiagnosticLog(root: FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Movies/Eidos Clips/Logs"))
+    #else
+    public static let shared = DiagnosticLog(root: FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Clips/Logs"))
+    #endif
     public let root: URL
     public let runID = UUID()
     private let lock = NSLock()
