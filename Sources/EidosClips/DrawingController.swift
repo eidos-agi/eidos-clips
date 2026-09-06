@@ -53,6 +53,7 @@ final class DrawingPanel: NSPanel {
         pointer.deactivate(); scene.changeSource(); setInteractive(false); status = "Paired drawing device"; return scene.snapshot
     }
     func reset() { scene.reset(); pointer.activate(epoch: scene.epoch); canvas?.needsDisplay = true; onSnapshot?(scene.snapshot) }
+    func invalidateInput() { scene.changeSource(); if status == "Mouse & trackpad" { pointer.activate(epoch: scene.epoch) }; onSnapshot?(scene.snapshot) }
     func hide() { panel?.orderOut(nil); enabled = false }
     func accept(_ operation: InkOperation) {
         guard inputAllowed else { return }
@@ -64,8 +65,13 @@ final class DrawingPanel: NSPanel {
             }
         } catch { status = error.localizedDescription; DiagnosticLog.shared.record(.drawingRejected) }
     }
-    func undo() { pointer.send(.undo) }
-    func clear() { pointer.send(.clear) }
+    private func command(_ kind: InkOperation.Kind) {
+        guard inputAllowed, let operation = try? scene.command(kind) else { return }
+        if status == "Mouse & trackpad" { pointer.activate(epoch: scene.epoch) }
+        onAccepted?(operation); onSnapshot?(scene.snapshot); canvas?.needsDisplay = true
+    }
+    func undo() { command(.undo) }
+    func clear() { command(.clear) }
 }
 
 @MainActor final class InkCanvas: NSView {

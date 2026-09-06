@@ -4,6 +4,7 @@ import ClipsModules
 
 struct CapturePanel: View {
     @ObservedObject var model: ClipsModel
+    @State private var showDevice = false
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
             HStack {
@@ -16,6 +17,7 @@ struct CapturePanel: View {
                     .buttonStyle(.plain).help("Your clips").disabled(model.active)
                 Menu {
                     Toggle("Drawing & editing modules", isOn: Binding(get: { model.modulesEnabled }, set: { model.setModulesEnabled($0) }))
+                    Button("Connect drawing device…") { showDevice = true }.disabled(!model.modulesEnabled)
                     Button("Save diagnostic report") { model.diagnosticReport() }
                     Button("Open recordings folder") { model.showFiles() }
                 } label: { Image(systemName: "ellipsis.circle").font(.system(size: 16)) }.menuStyle(.borderlessButton).frame(width: 22)
@@ -71,27 +73,55 @@ struct CapturePanel: View {
                 Text("Saved on this Mac · Clips controls are included in your take")
                     .font(.system(size: 10)).foregroundStyle(ClipsStyle.muted)
             }
-        }.padding(26).frame(width: 420).frame(minHeight: 380)
+        }.popover(isPresented: $showDevice) { DeviceConnectionView(model: model, nearby: model.nearby) }
+            .padding(26).frame(width: 420).frame(minHeight: 380)
             .background(ClipsStyle.canvas).foregroundStyle(.white).tint(ClipsStyle.accent).preferredColorScheme(.dark)
     }
     private func input(_ name: String, symbol: String, value: Binding<Bool>) -> some View {
         Button { value.wrappedValue.toggle() } label: {
             VStack(spacing: 7) {
-                Image(systemName: value.wrappedValue ? symbol + ".fill" : symbol + ".slash").font(.system(size: 18))
+                Image(systemName: value.wrappedValue ? symbol + ".fill" : (symbol == "speaker.wave.2" ? "speaker.slash.fill" : symbol + ".slash")).font(.system(size: 18))
                     .foregroundStyle(value.wrappedValue ? Color.white : ClipsStyle.muted)
                 Text(name).font(.system(size: 10)).foregroundStyle(ClipsStyle.muted)
             }.frame(maxWidth: .infinity)
         }.buttonStyle(.plain).accessibilityLabel(name).accessibilityValue(value.wrappedValue ? "On" : "Off")
     }
 }
+struct DeviceConnectionView: View {
+    @ObservedObject var model: ClipsModel
+    @ObservedObject var nearby: NearbyDrawingAdapter
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Draw from your iPad").font(.headline)
+            Text(nearby.status).font(.caption)
+            if let code = nearby.comparisonCode, !nearby.approved {
+                Text(code).font(.system(size: 32, weight: .semibold, design: .monospaced))
+                Text("Only connect if this code matches the code on your drawing device.").font(.caption).fixedSize(horizontal: false, vertical: true)
+                Button("Codes match — connect") { nearby.link.approve() }.disabled(nearby.localApproved)
+            }
+            if nearby.approved {
+                Toggle("Show recording preview on iPad", isOn: Binding(get: { nearby.sharingPreview }, set: { model.shareDevicePreview($0) }))
+                    .disabled(model.phase != .recording)
+                Text("The preview contains the selected recording area. Drawing stops while recording is paused.").font(.caption).foregroundStyle(.secondary)
+                Button("Disconnect") { nearby.deactivate() }
+            } else {
+                Button("Find drawing device") { nearby.connect() }
+                Button("Cancel") { nearby.deactivate() }
+            }
+        }.padding(20).frame(width: 300)
+    }
+}
 struct RecordingHUD: View {
     @ObservedObject var model: ClipsModel
     @ObservedObject var drawing: DrawingController
+    @State private var showDevice = false
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 14) {
                 Circle().fill(model.phase == .paused ? .yellow : ClipsStyle.accent).frame(width: 8, height: 8)
                 Text(ClipsModel.time(model.elapsed)).font(.system(size: 16, weight: .medium, design: .monospaced)).frame(width: 65)
+                Button { showDevice.toggle() } label: { Image(systemName: "ipad") }.help("Connect drawing device").disabled(!model.modulesEnabled)
+                    .popover(isPresented: $showDevice) { DeviceConnectionView(model: model, nearby: model.nearby) }
                 Button { model.toggleDrawing() } label: { Image(systemName: drawing.enabled ? "pencil.tip.crop.circle.fill" : "pencil.tip.crop.circle") }
                     .help("Draw on screen · Esc to return to clicking").disabled(!model.modulesEnabled)
                 Button { model.pause() } label: { Image(systemName: model.phase == .paused ? "play.fill" : "pause.fill") }

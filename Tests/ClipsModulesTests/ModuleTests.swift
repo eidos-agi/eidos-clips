@@ -2,6 +2,21 @@ import XCTest
 @testable import ClipsModules
 
 final class ModuleTests: XCTestCase {
+    func testPairingAuthenticatesTranscriptAndRejectsReplayOrTampering() throws {
+        let host = PairingChannel(isHost: true), device = PairingChannel(isHost: false)
+        try host.accept(device.hello); try device.accept(host.hello)
+        XCTAssertEqual(host.comparisonCode, device.comparisonCode)
+        let sealed = try host.seal(PeerMessage(.canvas, payload: Data("fixture".utf8)))
+        XCTAssertEqual(try device.open(sealed).payload, Data("fixture".utf8))
+        XCTAssertThrowsError(try device.open(sealed))
+        let response = try device.seal(PeerMessage(.approved))
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: response) as? [String: Any])
+        json["sequence"] = 100
+        XCTAssertThrowsError(try host.open(JSONSerialization.data(withJSONObject: json)))
+        XCTAssertEqual(try host.open(response).kind, .approved)
+        let impostor = PairingChannel(isHost: false); try impostor.accept(host.hello)
+        XCTAssertThrowsError(try impostor.open(sealed))
+    }
     func testDrawingRejectsStaleTargetAndReorderingAndDeduplicates() throws {
         var scene = AnnotationScene()
         let stroke = InkStroke(tool: .pen, color: .coral, points: [CanvasPoint(x: 0.2, y: 0.8)])

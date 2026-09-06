@@ -19,12 +19,16 @@ jobs:
         run: |
           mkdir -p dist
           { sw_vers; uname -m; xcodebuild -version; swift --version; } | tee dist/toolchain.txt
+      - name: Diagnostic publication boundary
+        run: python3 scripts/test-diagnostics.py
       - name: Unit and native media tests
         run: |
           set -o pipefail
           swift test 2>&1 | tee dist/swift-tests.log
       - name: Build development application
         run: bash scripts/build-app.sh
+      - name: Compile iPad companion for Simulator
+        run: bash scripts/build-companion.sh
       - name: Verify development bundle identity and signature
         run: |
           python3 - <<'PY'

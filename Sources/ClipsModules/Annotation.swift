@@ -74,6 +74,11 @@ public struct AnnotationScene {
         }
         lastSequence = operation.sequence; revision += 1; return true
     }
+    public mutating func command(_ kind: InkOperation.Kind) throws -> InkOperation {
+        guard kind == .clear || kind == .undo else { throw ModuleError.invalid("Unsupported host drawing command.") }
+        let operation = InkOperation(epoch: epoch, sequence: lastSequence + 1, kind: kind)
+        try apply(operation); changeSource(); return operation
+    }
     public mutating func expireLasers() {
         strokes.removeAll { $0.tool == .laser && $0.id != activeID }
         pointCount = strokes.reduce(0) { $0 + $1.points.count }

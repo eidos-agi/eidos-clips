@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleExecutable</key>
+	<string>ClipsDraw</string>
+	<key>CFBundleIdentifier</key>
+	<string>org.eidos.clips.draw</string>
+	<key>CFBundleName</key>
+	<string>Clips Draw</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.3.0</string>
+	<key>CFBundleVersion</key>
+	<string>3</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>MinimumOSVersion</key>
+	<string>17.0</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_eidos-clips._tcp</string>
+	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Pair with Clips on your Mac to draw on your recording.</string>
+	<key>UIDeviceFamily</key>
+	<array>
+		<integer>2</integer>
+	</array>
+	<key>UILaunchScreen</key>
+	<dict/>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+	</array>
+</dict>
+</plist>

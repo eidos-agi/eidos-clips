@@ -25,6 +25,8 @@ final class ClipsModel: ObservableObject {
     let registry = ExtensionRegistry()
     let drawing = DrawingController()
     let regionPicker = RegionPicker()
+    let nearby = NearbyDrawingAdapter()
+    private var remoteEpoch: UUID?
     let exportAdapter = NativeExportAdapter()
     let editProvider = BasicEditProvider()
     let folderDestination = LocalFolderDestination()
@@ -74,9 +76,19 @@ final class ClipsModel: ObservableObject {
     var displayName: String { displayNames.indices.contains(displayIndex) ? displayNames[displayIndex] : "Choose a display" }
 
     init() {
-        for descriptor in [drawing.pointer.descriptor, exportAdapter.descriptor, editProvider.descriptor, folderDestination.descriptor,
+        for descriptor in [nearby.descriptor, drawing.pointer.descriptor, exportAdapter.descriptor, editProvider.descriptor, folderDestination.descriptor,
             ModuleDescriptor(id: "org.eidos.diagnostics.outbox", name: "Diagnostic outbox", capabilities: [.diagnostics])] {
             try? registry.register(descriptor)
+        }
+        nearby.onOperation = { [weak self] in self?.drawing.accept($0) }
+        nearby.onConnection = { [weak self] approved in
+            guard let self else { return }
+            if approved { _ = self.drawing.useRemote(); self.synchronizeDevice() }
+            else { self.drawing.usePointer(); self.capture.preview = nil; self.remoteEpoch = nil }
+        }
+        drawing.onSnapshot = { [weak self] snapshot in
+            guard let self, self.nearby.approved, self.remoteEpoch != snapshot.epoch else { return }
+            self.synchronizeDevice()
         }
         DiagnosticLog.shared.record(.appLaunch)
         capture.packageReady = { [weak self] in self?.annotationPackage = $0; self?.annotationEvents = [] }
@@ -89,8 +101,12 @@ final class ClipsModel: ObservableObject {
 
         capture.changed = { [weak self] in
             guard let self else { return }
+            let previous = self.phase
             self.phase = self.capture.state.value
-            self.drawing.inputAllowed = self.phase != .paused && self.phase != .finalizing
+            if self.phase != previous { self.drawing.invalidateInput() }
+            self.drawing.inputAllowed = self.phase == .recording
+            self.synchronizeDevice()
+            if self.phase == .idle { self.nearby.sharingPreview = false; self.capture.preview = nil }
             if self.phase == .idle { self.saveAnnotations(); self.drawing.hide(); self.annotationPackage = nil }
             self.stateChanged?()
         }
@@ -129,6 +145,7 @@ final class ClipsModel: ObservableObject {
         player.pause(); page = .record; notice = nil
         DiagnosticLog.shared.record(.commandAccepted)
         drawing.reset()
+        if nearby.approved { _ = drawing.useRemote(); synchronizeDevice() }
         Task { await capture.start(displayID: selectedDisplayID, region: region, microphone: microphone, systemAudio: systemAudio, camera: camera) }
     }
     func pause() { capture.togglePause() }
@@ -265,10 +282,11 @@ final class ClipsModel: ObservableObject {
                 width: r.width * screen.frame.width, height: r.height * screen.frame.height)
         } else { frame = screen.frame }
         targetFrame = frame
-        if modulesEnabled { drawing.show(frame: frame, interactive: false) }
+        if modulesEnabled { drawing.show(frame: frame, interactive: false) }; synchronizeDevice()
     }
     func toggleDrawing() {
         guard modulesEnabled, phase == .recording || phase == .paused else { return }
+        if nearby.approved { nearby.deactivate(); drawing.usePointer() }
         drawing.setInteractive(!drawing.enabled)
     }
     func saveAnnotations() {
@@ -281,10 +299,21 @@ final class ClipsModel: ObservableObject {
     func setModulesEnabled(_ value: Bool) {
         modulesEnabled = value
         for module in registry.modules where module.id != exportAdapter.descriptor.id { registry.setEnabled(value, id: module.id) }
-        if !value { drawing.hide() }
+        if !value { nearby.deactivate(); drawing.hide() }
         else if let frame = targetFrame, active { drawing.show(frame: frame, interactive: false) }
         if !value { trimming = false }
         DiagnosticLog.shared.record(value ? .moduleEnabled : .moduleDisabled)
+    }
+    func synchronizeDevice() {
+        guard nearby.approved else { return }
+        remoteEpoch = drawing.scene.epoch
+        let frame = targetFrame ?? CGRect(x: 0, y: 0, width: 16, height: 9)
+        nearby.synchronize(RemoteCanvas(snapshot: drawing.scene.snapshot, aspectRatio: frame.width / max(1, frame.height), acceptsInput: phase == .recording && modulesEnabled))
+    }
+    func shareDevicePreview(_ value: Bool) {
+        nearby.sharingPreview = value
+        if !value, nearby.approved { try? nearby.link.send(.init(.preview)) }
+        capture.preview = value ? { [weak self] data in Task { @MainActor in self?.nearby.sendPreview(data) } } : nil
     }
     func diagnosticReport() {
         do {
