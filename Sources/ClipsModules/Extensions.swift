@@ -23,6 +23,7 @@ public struct ModuleDescriptor: Codable, Equatable, Identifiable {
     private var drawingInputs: [String: any DrawingInputAdapter] = [:]
     private var editors: [String: any EditProvider] = [:]
     private var destinations: [String: any DestinationAdapter] = [:]
+    private var processors: [String: any ArtifactProcessor] = [:]
     private var exporters: [String: any ExportProvider] = [:]
     public init() {}
     public func register(_ module: ModuleDescriptor) throws {
@@ -37,6 +38,8 @@ public struct ModuleDescriptor: Codable, Equatable, Identifiable {
     }
     public func register(editor: any EditProvider) throws { try register(editor.descriptor); editors[editor.descriptor.id] = editor }
     public func register(destination: any DestinationAdapter) throws { try register(destination.descriptor); destinations[destination.descriptor.id] = destination }
+    public func register(processor: any ArtifactProcessor) throws { try register(processor.descriptor); processors[processor.descriptor.id] = processor }
+    public func processor(_ id: String) -> (any ArtifactProcessor)? { isEnabled(id, capability: .processing) ? processors[id] : nil }
     public func register(exporter: any ExportProvider) throws { try register(exporter.descriptor); exporters[exporter.descriptor.id] = exporter }
     public func drawingInput(_ id: String) -> (any DrawingInputAdapter)? { isEnabled(id, capability: .drawingInput) ? drawingInputs[id] : nil }
     public func editor(_ id: String) -> (any EditProvider)? { isEnabled(id, capability: .editing) ? editors[id] : nil }

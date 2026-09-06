@@ -60,6 +60,8 @@ public final class DiagnosticLog {
     private let lock = NSLock()
     private let disk = DispatchQueue(label: "org.eidos.clips.diagnostics", qos: .utility)
     private let origin = ProcessInfo.processInfo.systemUptime
+    private var sessionID: UUID?
+    public func setSession(_ id: UUID?) { lock.lock(); sessionID = id; lock.unlock() }
     private var sequence = 0
     private var pending: [DiagnosticRecord] = []
     private var recent: [DiagnosticRecord] = []
@@ -78,7 +80,7 @@ public final class DiagnosticLog {
         guard pending.count < 2048 else { dropped += 1; return }
         sequence += 1
         let safe = Dictionary(uniqueKeysWithValues: metrics.filter { $0.value.isFinite && abs($0.value) <= 1e15 }.map { ($0.key.rawValue, $0.value) })
-        let row = DiagnosticRecord(event: event, sequence: sequence, elapsedMs: Int(max(0, ProcessInfo.processInfo.systemUptime - origin) * 1000), operationID: operationID, metrics: safe)
+        let row = DiagnosticRecord(event: event, sequence: sequence, elapsedMs: Int(max(0, ProcessInfo.processInfo.systemUptime - origin) * 1000), operationID: operationID ?? sessionID, metrics: safe)
         pending.append(row); recent.append(row)
         if recent.count > 2048 { recent.removeFirst(recent.count - 2048) }
     }

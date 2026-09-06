@@ -11,7 +11,12 @@ final class CaptureSink: NSObject, SCStreamOutput, SCStreamDelegate, AVCaptureAu
     let failed: (Error) -> Void
     private var latestScreen: CMSampleBuffer?
     private var cadence: DispatchSourceTimer?
-    var preview: ((Data) -> Void)?
+    private let previewLock = NSLock()
+    private var previewCallback: ((Data) -> Void)?
+    var preview: ((Data) -> Void)? {
+        get { previewLock.lock(); defer { previewLock.unlock() }; return previewCallback }
+        set { previewLock.lock(); previewCallback = newValue; previewLock.unlock() }
+    }
     private let imageContext = CIContext()
     private var lastPreview = 0.0
     private var completeCount = 0
@@ -68,7 +73,7 @@ final class CaptureController {
     var state = SessionState()
     var changed: (() -> Void)?
     var report: ((String) -> Void)?
-    var completed: ((URL, URL) -> Void)?
+    var completed: ((URL) -> Void)?
     var prepared: ((UInt32, CaptureRegion?) -> Void)?
     var packageReady: ((URL) -> Void)?
     var preview: ((Data) -> Void)? { didSet { sink?.preview = preview } }
@@ -126,6 +131,7 @@ final class CaptureController {
                 Task { @MainActor in await self?.interrupt(error) }
             }
             recorder = writer
+            DiagnosticLog.shared.setSession(UUID(uuidString: writer.packageURL.deletingPathExtension().lastPathComponent))
             packageReady?(writer.packageURL)
             let callback = CaptureSink(recorder: writer) { [weak self] error in
                 Task { @MainActor in await self?.interrupt(error) }
@@ -228,14 +234,14 @@ final class CaptureController {
             cameraWindow?.close(); cameraWindow = nil
             let package = try await writer.finish(interrupted: interrupted)
             DiagnosticLog.shared.record(.captureStopped, [.durationMs: elapsed * 1000])
-            let export = try await MediaExport.export(package: package, to: exportURL(prefix: interrupted ? "Recovered" : "Clip"))
-            completed?(package, export)
-            report?(interrupted ? "Interrupted recording retained and exported. Review it before use." : "Saved and checked. Your original take is retained.")
-            return export
+            completed?(package)
+            report?(interrupted ? "Interrupted recording retained. Review completed media before use." : "Recording saved. Your original take is retained.")
+            return package
         }
         stopTask = task
         defer {
             stopTask = nil; recorder = nil; sink = nil; clock = nil
+            DiagnosticLog.shared.setSession(nil)
             state = SessionState(); changed?()
         }
         do { return try await task.value } catch {

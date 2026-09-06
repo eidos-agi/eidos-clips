@@ -2,7 +2,7 @@
 
 Use this page to discuss what belongs in Clips and to find the real user paths for verification. [ROADMAP.md](ROADMAP.md) orders delivery; [VALIDATION.md](VALIDATION.md) defines acceptance cases. This map connects both to the app a person can operate.
 
-**Source baseline:** [`1eaf230`](https://github.com/eidos-agi/eidos-clips/commit/1eaf230f7ff0ed3609c66ddfe328fd5b456006cd), fetched September 6, 2026. That commit publishes the MIT license and [compact-capture brief](WANT.md); it adds no feature code. This map is a source audit and discussion document, not a claim that a native user journey was exercised in this authoring session.
+**Implementation batch: September 6, 2026.** The requested modular application is now being implemented, with native CI checkpoints. The machine-readable [delivery ledger](feature-map.json), [execution plan](BUILD-PLAN.md), and [build review](BUILD-REVIEW.md) distinguish executable code, synthetic evidence and physical acceptance. Earlier planning used `1eaf230`; it is no longer the application baseline.
 
 ## Read the map
 
@@ -34,69 +34,69 @@ The primary loop is **prepare → record → finish → review → export or han
 
 | ID | Feature | Implementation now | Scope and evidence |
 |---|---|---|---|
-| C01 | Compact ready panel | Missing; launch is 1040×780 with 880×640 minimum | Next; native renders show the existing large layout |
-| C02 | Whole-display selection/capture | Exists; refreshed display list and selected index | Physical permission/display behavior unproven |
-| C03 | Region selection, drag and Esc cancel | Missing | Next; display-coordinate and mixed-DPI output proof required, V21–V22 |
+| C01 | Compact ready panel | Exists: 420-point ready panel | Native app render; compact panel in CapturePanel.swift |
+| C02 | Whole-display selection/capture | Exists: stable display identity, refreshed choices | Native compile; physical reconnect/layout validation remains |
+| C03 | Region selection, drag and Esc cancel | Exists: per-display drag picker, Esc cancel, normalized crop | Region model bounds tests; physical mixed-DPI/output validation remains |
 | C04 | Window selection/capture | Missing | Later than the next brief; still in the wider M2 plan |
-| C05 | Exact capture preview/border | Missing; current canvas is decorative | Planned preview; persistent region boundary proposed for discussion |
-| C06 | Mic, system audio, camera switches before start | Exists using default mic/camera | Native synthetic audio checks do not prove devices, V02–V03/V17 |
-| C07 | Device pickers, separate meters, test recording | Missing | Pickers/meters planned; quick playback check proposed |
+| C05 | Exact capture preview/border | Partial: scoped remote preview during capture | No preflight preview or persistent crop border yet |
+| C06 | Mic, system audio, camera switches before start | Exists: optional mic, Mac audio and camera | Native/synthetic audio checks; real devices unproven |
+| C07 | Device pickers, separate meters, test recording | Partial: microphone and camera device menus | Device lists need physical checks; meters and quick test playback remain |
 | C08 | Permission help and recovery | Partial; prompts and text errors exist | No proven denial/retry journey; dedicated readiness view proposed, V01–V03 |
-| C09 | Countdown, cancel preparation, remembered presets | Missing | Planned Demo/Call presets and countdown; persistent device identity needs validation |
-| R01 | Floating recording HUD and shrink/hide studio | Missing | Next; timer/pause/finish remain available in current app/menu |
-| R02 | Include Clips UI in recorded video | Missing desired behavior; own app is currently excluded except camera | Next; keep current-process audio excluded; replaces the old hide-controls requirement |
+| C09 | Countdown, cancel preparation, remembered presets | Partial: cancellable three-second countdown and remembered inputs | Demo/Call named presets remain; native compile evidence |
+| R01 | Floating recording HUD and shrink/hide studio | Exists: floating 60-point strip, drawing tools expand it | Native render; main window hides when capture begins |
+| R02 | Include Clips UI in recorded video | Exists: own application included; own audio excluded | SCContentFilter source verified; actual captured-window proof remains |
 | R03 | Pause/resume, stop, elapsed time | Exists | Synthetic clock/media proof; physical static-screen pause and controller races unproven, V04–V06/V13 |
 | R04 | Reopen Clips during recording | Exists via menu/reopen; page navigation is disabled during a take | Next capture policy must make reopened window visible in output |
-| R05 | Keyboard controls | Partial; app-scoped start/finish shortcuts and menu actions | Global configurable shortcuts missing; VoiceOver unproven, V24 |
+| R05 | Keyboard controls | Partial: app shortcuts plus global Control-Option-Space / Period | Registration recorded in native UI smoke; physical interaction and VoiceOver remain |
 | R06 | Camera positioning and live inputs | Partial; fixed-size draggable camera window | Resize/persist/live camera-off/mute missing; actual composition unproven |
-| R07 | Device/display loss, lock/sleep, repeated commands | Partial; stream errors interrupt; no complete device/route recovery flow | Planned; physical races/routes/sleep unproven, V05/V19–V21 |
+| R07 | Device/display loss, lock/sleep, repeated commands | Partial: stream-error and sleep interruption | Full unplug, route, lock, disk and race matrix remains |
 | R08 | Restart or discard an unwanted take safely | Missing dedicated action | Proposed; preserve the first take in recoverable trash |
 | S01 | Durable original and new-file export | Exists; committed segments, digests, decode checks, no overwrite | Synthetic evidence; no power-loss or worst-case loss-bound claim |
 | S02 | Recover after process termination | Partial; verified committed segments only | Synthetic SIGKILL evidence for tested checkpoints, V10 |
 | S03 | Repair manifest/orphan media | Missing; corruption blocks export and preserves originals | Planned; reject-corruption tests do not prove repair, V11 |
 | S04 | Low disk and destination failures | Partial; 128 MiB reserve and surfaced failures | Fault-injection and physical storage proof missing, V08–V09 |
-| S05 | Storage location, size, retention, trash/restore | Missing user controls | Location/trash planned; disk usage and retention UI proposed, no automatic original deletion |
+| S05 | Storage location, size, retention, trash/restore | Partial: chosen storage folder, Recently Deleted, undo move | No automatic original deletion; retention/usage UI remains |
 | E01 | Preview and playback | Exists with native AVPlayerView | Render evidence; generated media decodes; physical playback journey unproven |
-| E02 | Rename and nondestructive trim/export | Exists; sliders export a new MP4 | Synthetic trim/source-preservation proof; saved edit recipe missing, V25 |
-| E03 | Export progress, cancellation, queue | Partial; busy text and capture gate | Percentage/cancel/background queue missing; no concurrent-capture claim |
+| E02 | Rename and nondestructive trim/export | Exists: rename, trim and remove-selection export | Saved edit recipe beside output; native decoded cut/trim tests |
+| E03 | Export progress, cancellation, queue | Partial: cancellable progress jobs, stale-result gate, separate Stop | One interactive export at a time; persistent background queue remains |
 | E04 | Record another, retain earlier clip | Exists | Source path; complete user journey unproven, V26 |
-| L01 | Local clips, thumbnails, title search, Finder | Exists; scans recording packages | Native fixture render; no large-library performance or missing-file recovery proof |
-| L02 | Projects, notes, search beyond titles | Missing | Planned in M3 |
-| L03 | Transcript search and captions | Missing | Later via a chosen processor; not required to record/export |
+| L01 | Local clips, thumbnails, title search, Finder | Exists: local list, thumbnails, title search, verified preview cache | Native fixture renders; scale and cache-retention policy remain |
+| L02 | Projects, notes, search beyond titles | Partial: local notes per recording | Projects and notes search remain |
+| L03 | Transcript search and captions | Partial: optional SRT/WebVTT import and synchronized captions | No automatic transcription or transcript search; native evidence in build review |
 | H01 | Export ordinary MP4 and native Share sheet | Exists | Local export evidence; no proof of recipient access or remote delivery |
-| H02 | Named folder destinations, verified copy, retry | Missing | Planned M4; must report Copied to folder, not Uploaded |
+| H02 | Named folder destinations, verified copy, retry | Partial: folder destination, digest-verified copy, idempotent retry | Native copy/retry test; saved destinations and persistent retries remain |
 | H03 | Local agent commands and completion events | Missing | Planned M4; clips-probe is only a fixture tool |
-| H04 | Direct upload, share links, provider processing | Missing | Later; explicit destination/access and separate proof required |
-| D01 | Local synchronous diagnostic file | Missing | Next; lifecycle, filter/size, frame completeness, encoder wait, queue overload, export duration |
-| D02 | Reveal/export diagnostic bundle | Missing | Proposed; one useful handoff for Daniel/local agent, no private media |
-| D03 | Bounded logs and recording correlation | Missing | Proposed guardrail for D01; limit disk use and connect events to a random session ID |
-| D04 | Sanitized reports committed to repo by local agent | Missing | Requested feedback loop; schema validation/outbox/Git transport design in DIAGNOSTICS.md |
-| D05 | Incident to reproducer to regression evidence | Missing end-to-end loop | Requested improvement goal; link report/feature/fix/test IDs, never treat logs as executable instructions |
-| Q01 | Mac CI, package icon, development ZIP | Exists | Build, seven tests, four UI renders, synthetic probes passed at baseline |
+| H04 | Direct upload, share links, provider processing | Partial: portable watch folder with HTML player | Local output only; no hosted upload, public link, access or provider service |
+| D01 | Local synchronous diagnostic file | Exists: typed JSONL writer on dedicated utility queue | Lifecycle, permissions, output dimensions, frame summaries, encoder waits and exports; one-second flush interval |
+| D02 | Reveal/export diagnostic bundle | Exists: Save diagnostic report and reveal outbox | Strict allowlist; no arbitrary error strings, media, paths or attachments |
+| D03 | Bounded logs and recording correlation | Partial: file/total/age bounds, run and recording correlation | Some performance/provider metrics still future work; privacy/validation tests pass |
+| D04 | Sanitized reports committed to repo by local agent | Partial: validated outbox and local Git publication command | Python validator tests; actual local-agent GitHub authentication/configuration remains |
+| D05 | Incident to reproducer to regression evidence | Partial: versioned report plus source commit and regression suites | No real physical incident report has completed the loop |
+| Q01 | Mac CI, package icon, development ZIP | Exists: Mac build, tests, native renders, development ZIP, iPad simulator build | See pinned build review; development artifacts are not notarized releases |
 | Q02 | Company-signed, notarized install | Partial; release script exists | No release artifact/signing evidence found in fetched repo/releases; local Mac action remains |
 | Q03 | Physical capture and supported-device matrix | No completed physical evidence found | V01–V38 remain subject to their exact evidence requirements; M5 open |
 | Q04 | Update/reinstall path | Missing product flow | Proposed; stable identity, preserved recordings/permissions, user-controlled updates |
 | Q05 | Browser edition / other native platforms | Missing | Browser later M6; other native platforms separate decision |
-| A01 | Pair/reconnect/revoke a drawing device | Missing | Requested; iPad first remote adapter, authenticated scoped session; local mouse/pen needs no pairing |
-| A02 | Selected-area preview for capable remote drawing adapters | Missing | Explicit scoped preview; not required by local pointer/attached-pen input |
-| A03 | Device-neutral ink visible on Mac and in export | Missing | Requested; shared strokes/scene, optional pressure/tilt, no vendor SDK in canonical data |
-| A04 | Laser pointer and fading marks | Missing | Proposed presentation mode |
-| A05 | Whiteboard canvas and return to the demo | Missing | Proposed companion mode |
-| A06 | Ink geometry, latency and reconnect correctness | Missing | Required for the integration; physical cases A-V01–A-V07 in the detail page |
-| A07 | Optional ink source and structured performance evidence | Missing | Local portable ink sidecar proposed; only content-free diagnostics may reach repo |
-| A08 | Mouse/trackpad drawing and drawing-off recorder path | Missing drawing; basic recorder already exists | Required accessible default; no device/account/plugin setup to record |
-| A09 | Additional pen/touch/browser input adapters | Missing | Requested replaceability; individual device/platform support needs qualification |
-| X01 | Narrow versioned subsystem contracts and capability registry | Missing | Requested modular design; first-party registration before any public plugin loader |
-| X02 | Editing/processing/sharing jobs separate from recording | Partial architectural foundation; existing UI still couples operations | Required separation; completed immutable inputs, cancel/stale-result/receipt handling |
-| X03 | Extension compatibility, isolation and disable path | Missing | Required before external code loading; interface alone is not fault isolation |
-| X04 | Portable artifacts and missing-extension behavior | Partial: originals/local MP4 exist | Preserve canonical data, recipes/provenance; ordinary playback must survive removal |
-| X05 | Extension diagnostics and contract acceptance | Missing | Attribute waits/failures/version; X-V01–X-V10 define proof, none yet passed |
+| A01 | Pair/reconnect/revoke a drawing device | Partial: ephemeral nearby pairing, two-device code approval, disconnect/re-pair | Crypto transcript/replay tests pass; actual radios, reconnect and revocation need two devices |
+| A02 | Selected-area preview for capable remote drawing adapters | Partial: explicitly enabled selected recording preview, one frame in flight | Native implementation; image quality, latency and radio backpressure unproven |
+| A03 | Device-neutral ink visible on Mac and in export | Exists in source: shared portable scene and native overlay renderer | Local adapter render tested; physical screen/video inclusion still unproven |
+| A04 | Laser pointer and fading marks | Partial: laser tool and periodic expiration | Physical feel and exact fading timing need validation |
+| A05 | Whiteboard canvas and return to the demo | Exists in source: optional Mac whiteboard background | Native source; physical capture proof remains |
+| A06 | Ink geometry, latency and reconnect correctness | Partial: normalized geometry, epoch changes, ordered messages, re-pair | Physical Pencil latency, rotation, display mapping and recovery remain open |
+| A07 | Optional ink source and structured performance evidence | Partial: local annotation snapshot/timeline sidecars and aggregate diagnostics | Sidecars checkpoint asynchronously; editable re-render and detailed latency trace remain |
+| A08 | Mouse/trackpad drawing and drawing-off recorder path | Exists: pointer adapter and optional-module disable path | Native adapter routing/disable checks; physical mouse drawing remains |
+| A09 | Additional pen/touch/browser input adapters | Partial: iPad Pencil/finger companion and adapter interface | Other vendors/browser/Android adapters remain |
+| X01 | Narrow versioned subsystem contracts and capability registry | Exists: versioned contracts, typed adapter registration/lookup | Drawing, editing, export, processors and destinations registered; no arbitrary code loader |
+| X02 | Editing/processing/sharing jobs separate from recording | Exists: export/edit/destination contracts, job gate and retained originals | Native cut/source-preservation/copy/retry checks; durable job queue remains |
+| X03 | Extension compatibility, isolation and disable path | Partial: bundled capability registry and disable path | First-party modules share process; external crash/resource isolation remains unimplemented |
+| X04 | Portable artifacts and missing-extension behavior | Partial: MP4, JSON ink/recipes, notes, WebVTT, portable watch folder | Unknown third-party edit round-trip is future SDK work |
+| X05 | Extension diagnostics and contract acceptance | Partial: contract, privacy, stale job and crypto regression tests | Complete external-isolation and hardware matrix remains open |
 
 For a broader Loom-type opportunity inventory, including attention tools, privacy/redaction, editing, hosted viewing, access, and collaboration, see [LOOM-GAPS.md](LOOM-GAPS.md). The [structured diagnostics design](DIAGNOSTICS.md) covers the requested local-log-to-repository feedback loop.
 
 ## Gaps worth discussing first
 
-These priorities are recommendations. Items marked Proposed above need a scope decision before implementation.
+The user authorized implementation of the broader map. The execution plan prioritizes local recording, optional tools and trustworthy evidence; hosted services and new external providers still require a concrete provider/access configuration.
 
 1. **Make setup truthful.** Region boundary/preview, real mic/system meters, and a short test-and-playback action help answer “what am I recording, and can you hear me?” Include clear permission/device readiness.
 2. **Make a bad take cheap.** Countdown with Esc cancel, global pause/stop, and Restart/Discard with undo. A recorder should stay easy to control when another app has focus.
@@ -105,18 +105,15 @@ These priorities are recommendations. Items marked Proposed above need a scope d
 5. **Choose the first audience.** Recommendation: finish the short screen-demo/bug-report workflow first. Keep two-hour call recording as an explicit qualification track with real audio-route and sync evidence. Both jobs remain in the product plan; this is a discussion about delivery order.
 6. **Keep intelligence attachable.** A local MP4 plus a small metadata/completion contract can feed a chosen agent later. Transcription, captions, summaries, and upload providers should not block local capture.
 
-The four original WANT.md changes form the next requested implementation slice, now extended by Daniel’s request for structured reports committed back through the local agent. Signing and physical validation remain necessary alongside it. This map does not make cloud upload, built-in AI, accounts, notifications, or an editor timeline prerequisites for a useful recorder.
+The four original WANT.md changes are implemented in this batch, now extended by Daniel’s request for structured reports committed back through the local agent. Signing and physical validation remain necessary alongside it. This map does not make cloud upload, built-in AI, accounts, notifications, or an editor timeline prerequisites for a useful recorder.
 
 ### Requested addition: Optional drawing and replaceable tools
 
-Daniel wants Apple Pencil drawing for himself and a design that also supports people with another input device or no drawing device. The [drawing subsystem](features/drawing.md) owns portable ink and tools; local mouse/trackpad and [iPad](features/ipad-ink.md) are input adapters. Drawing can be off without affecting recording. Editing, sharing, processing and diagnostic publishing have separate contracts in [PLUGINS.md](PLUGINS.md), with bundled defaults and no initial marketplace/runtime loader. These additions change the map, not the baseline application code or evidence.
+Daniel wants Apple Pencil drawing for himself and a design that also supports people with another input device or no drawing device. The [drawing subsystem](features/drawing.md) owns portable ink and tools; local mouse/trackpad and [iPad](features/ipad-ink.md) are input adapters. Drawing can be off without affecting recording. Editing, sharing, processing and diagnostic publishing have separate contracts in [PLUGINS.md](PLUGINS.md), with bundled defaults and no initial marketplace/runtime loader. These additions now have executable implementations. See BUILD-PLAN.md for shipped boundaries and the remaining work; physical evidence is tracked separately.
 
-## Evidence fetched with this map
+## Evidence
 
-- GitHub reports the repo **public**, license **MIT**; no GitHub releases were returned on September 6, 2026. That does not prove no signed local build exists on Daniel's Mac.
-- [Native run 34014597627](https://github.com/eidos-agi/eidos-clips/actions/runs/34014597627) passed for `1eaf230`: macOS 15.7.9 arm64, Xcode 16.4, Swift 6.1.2; seven XCTest tests, native development app build, four native window renders, and synthetic media/recovery probes.
-- [Development artifact and evidence](https://github.com/eidos-agi/eidos-clips/actions/runs/34014597627/artifacts/9983533018) includes the ZIP, logs, `ui-*.png`, and evidence JSON. It is not notarized. Artifact retention is finite.
-- The native UI smoke writes PNGs through the app's own rendering path; it does not require the accessibility screenshot that hung on the local agent. It assigns fixture state directly, so it proves rendering rather than a user clicking through the workflow. No physical screen/mic/camera evidence follows from it.
+See [BUILD-REVIEW.md](BUILD-REVIEW.md) for exact source commits, successful native runs, artifact links, tests and unproven hardware cases. Compilation is not installation approval. A simulator is not an iPad/Pencil or radio test.
 
 ## Keep this map useful
 

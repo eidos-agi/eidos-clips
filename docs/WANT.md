@@ -1,5 +1,8 @@
 # Next: compact capture like Loom
 
+> **Implementation update — September 6, 2026:** Executable code now implements the compact capture, modular tools, local drawing, native iPad companion, editing/destination and diagnostic paths described in [BUILD-PLAN.md](BUILD-PLAN.md). Use [FEATURE-MAP.md](FEATURE-MAP.md) for current feature status and [BUILD-REVIEW.md](BUILD-REVIEW.md) for exact proof. Historical “missing/proposed” statements below describe the earlier baseline unless listed as still open in that ledger. Physical and signing acceptance are not implied.
+
+
 Work for the next agent. Do this in `eidos-agi/eidos-clips`. MIT, public, free.
 
 See [FEATURE-MAP.md](FEATURE-MAP.md) for current behavior and proof, [LOOM-GAPS.md](LOOM-GAPS.md) for broader opportunities, and [DIAGNOSTICS.md](DIAGNOSTICS.md) for the structured logging/report design. These documents do not mark the work below implemented.

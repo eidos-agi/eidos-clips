@@ -19,6 +19,7 @@ final class DrawingPanel: NSPanel {
     private var laserTimer: Timer?
     var onSnapshot: ((AnnotationSnapshot) -> Void)?
     var onAccepted: ((InkOperation) -> Void)?
+    var onRejected: (() -> Void)?
     var onExit: (() -> Void)?
     var inputAllowed = true
     init() {
@@ -54,6 +55,11 @@ final class DrawingPanel: NSPanel {
     }
     func reset() { scene.reset(); pointer.activate(epoch: scene.epoch); canvas?.needsDisplay = true; onSnapshot?(scene.snapshot) }
     func invalidateInput() { scene.changeSource(); if status == "Mouse & trackpad" { pointer.activate(epoch: scene.epoch) }; onSnapshot?(scene.snapshot) }
+    func renderPNG() throws -> Data {
+        guard let canvas, let bitmap = canvas.bitmapImageRepForCachingDisplay(in: canvas.bounds) else { throw ModuleError.invalid("No drawing canvas.") }
+        canvas.cacheDisplay(in: canvas.bounds, to: bitmap)
+        guard let data = bitmap.representation(using: .png, properties: [:]) else { throw ModuleError.invalid("Drawing did not render.") }; return data
+    }
     func hide() { panel?.orderOut(nil); enabled = false }
     func accept(_ operation: InkOperation) {
         guard inputAllowed else { return }
@@ -63,7 +69,7 @@ final class DrawingPanel: NSPanel {
                 // Aggregate at operation boundaries, never log coordinates or stroke payloads.
                 if operation.kind != .append { DiagnosticLog.shared.record(.drawingAccepted, [.revision: Double(scene.revision)]) }
             }
-        } catch { status = error.localizedDescription; DiagnosticLog.shared.record(.drawingRejected) }
+        } catch { status = error.localizedDescription; DiagnosticLog.shared.record(.drawingRejected); onRejected?() }
     }
     private func command(_ kind: InkOperation.Kind) {
         guard inputAllowed, let operation = try? scene.command(kind) else { return }

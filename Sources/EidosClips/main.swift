@@ -3,6 +3,7 @@ import SwiftUI
 import AVKit
 import ClipsCore
 import ClipsModules
+import Combine
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -12,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var hud: NSPanel!
     var lastPhase: CaptureState = .idle
     let shortcuts = GlobalShortcuts()
+    var drawingObservation: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 420, height: 440),
@@ -28,7 +30,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hud.level = NSWindow.Level(rawValue: NSWindow.Level.floating.rawValue + 1)
         hud.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]; hud.isMovableByWindowBackground = true
         hud.contentView = NSHostingView(rootView: RecordingHUD(model: model, drawing: model.drawing))
-        hud.center()
+        hud.center(); hud.setContentSize(NSSize(width: 390, height: 60))
+        drawingObservation = model.drawing.$enabled.sink { [weak self] enabled in self?.hud.setContentSize(NSSize(width: 390, height: enabled ? 102 : 60)) }
         model.configureWindow = { [weak self] in self?.resizeWindow() }
         model.showWindow = { [weak self] in self?.showWindow() }
         model.stateChanged = { [weak self] in self?.updateStatus() }
@@ -79,7 +82,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         statusItem.button?.title = model.phase == .recording ? "● Clips" : model.phase == .paused ? "Ⅱ Clips" : "Clips"
     }
-    func applicationWillTerminate(_ notification: Notification) { shortcuts.uninstall(); DiagnosticLog.shared.flush() }
+    func applicationWillTerminate(_ notification: Notification) { shortcuts.uninstall(); model.annotationArchive.flush(); DiagnosticLog.shared.flush() }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         if model.busy { model.notice = "Wait for this export to finish, then quit."; return .terminateCancel }
         guard model.capture.state.value != .idle else { return .terminateNow }
@@ -115,8 +118,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             try await Task.sleep(nanoseconds: 500_000_000)
             try render(output.appendingPathComponent("ui-hud.png"), view: hud.contentView)
             model.phase = .idle; hud.orderOut(nil)
+            model.drawing.inputAllowed = true
+            model.drawing.show(frame: CGRect(x: 40, y: 40, width: 640, height: 360), interactive: false)
+            model.drawing.whiteboard = true
+            model.drawing.pointer.send(.begin, stroke: InkStroke(tool: .pen, color: .coral, points: [CanvasPoint(x: 0.2, y: 0.5), CanvasPoint(x: 0.4, y: 0.2), CanvasPoint(x: 0.7, y: 0.6)]))
+            model.drawing.pointer.send(.end)
+            guard model.drawing.scene.strokes.count == 1 else { throw ClipsError.invalidState("Registered pointer did not reach the annotation scene.") }
+            try model.drawing.renderPNG().write(to: output.appendingPathComponent("ui-drawing.png"))
+            model.setModulesEnabled(false)
+            guard model.canRecord, model.registry.drawingInput(model.drawing.pointer.descriptor.id) == nil else { throw ClipsError.invalidState("Optional module disable path failed.") }
+            model.setModulesEnabled(true); model.drawing.hide()
             let evidence: [String: Any] = ["uiLaunched": true, "hardwareValidated": false,
-                "screens": ["record", "library", "review", "compact", "hud"], "globalShortcutsRegistered": shortcuts.registered,
+                "screens": ["record", "library", "review", "compact", "hud"], "globalShortcutsRegistered": shortcuts.registered, "localDrawingAdapterExercised": true, "optionalModulesOff": true,
                 "sourceCommit": ProcessInfo.processInfo.environment["GITHUB_SHA"] ?? "local"]
             let data = try JSONSerialization.data(withJSONObject: evidence, options: [.prettyPrinted, .sortedKeys])
             try data.write(to: output.appendingPathComponent("ui-smoke.json"))

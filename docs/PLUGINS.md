@@ -1,5 +1,8 @@
 # Optional subsystems, adapters, and extensions
 
+> **Implementation update — September 6, 2026:** Executable code now implements the compact capture, modular tools, local drawing, native iPad companion, editing/destination and diagnostic paths described in [BUILD-PLAN.md](BUILD-PLAN.md). Use [FEATURE-MAP.md](FEATURE-MAP.md) for current feature status and [BUILD-REVIEW.md](BUILD-REVIEW.md) for exact proof. Historical “missing/proposed” statements below describe the earlier baseline unless listed as still open in that ledger. Physical and signing acceptance are not implied.
+
+
 **Architecture decision requested by Daniel on September 6, 2026; not implemented.** The [current feature map](FEATURE-MAP.md) records the application baseline. This document generalizes the iPad idea: drawing is optional, device input is replaceable, and editing/sharing/processing have separate contracts. An iPad is one adapter, not a dependency of the recorder or the annotation document.
 
 ## The product must stand on its own

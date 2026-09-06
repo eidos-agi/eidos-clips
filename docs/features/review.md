@@ -1,5 +1,8 @@
 # Review and find clips
 
+> **Implementation update — September 6, 2026:** Executable code now implements the compact capture, modular tools, local drawing, native iPad companion, editing/destination and diagnostic paths described in [../BUILD-PLAN.md](../BUILD-PLAN.md). Use [../FEATURE-MAP.md](../FEATURE-MAP.md) for current feature status and [../BUILD-REVIEW.md](../BUILD-REVIEW.md) for exact proof. Historical “missing/proposed” statements below describe the earlier baseline unless listed as still open in that ledger. Physical and signing acceptance are not implied.
+
+
 Baseline: [feature map](../FEATURE-MAP.md). IDs E01–E04 and L01–L03. Main sources: [ClipsModel](../../Sources/EidosClips/ClipsModel.swift), [ClipsView](../../Sources/EidosClips/ClipsView.swift), [MediaExport](../../Sources/ClipsMedia/MediaExport.swift), [RecordingStore](../../Sources/ClipsCore/RecordingStore.swift).
 
 ## Sub-features

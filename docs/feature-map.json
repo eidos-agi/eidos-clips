@@ -1,0 +1,348 @@
+{
+  "schemaVersion": 1,
+  "updated": "2026-09-06",
+  "features": [
+    {
+      "id": "C01",
+      "feature": "Compact ready panel",
+      "implementation": "Exists: 420-point ready panel",
+      "evidenceAndGap": "Native app render; compact panel in CapturePanel.swift"
+    },
+    {
+      "id": "C02",
+      "feature": "Whole-display selection/capture",
+      "implementation": "Exists: stable display identity, refreshed choices",
+      "evidenceAndGap": "Native compile; physical reconnect/layout validation remains"
+    },
+    {
+      "id": "C03",
+      "feature": "Region selection, drag and Esc cancel",
+      "implementation": "Exists: per-display drag picker, Esc cancel, normalized crop",
+      "evidenceAndGap": "Region model bounds tests; physical mixed-DPI/output validation remains"
+    },
+    {
+      "id": "C04",
+      "feature": "Window selection/capture",
+      "implementation": "Missing",
+      "evidenceAndGap": "Later than the next brief; still in the wider M2 plan"
+    },
+    {
+      "id": "C05",
+      "feature": "Exact capture preview/border",
+      "implementation": "Partial: scoped remote preview during capture",
+      "evidenceAndGap": "No preflight preview or persistent crop border yet"
+    },
+    {
+      "id": "C06",
+      "feature": "Mic, system audio, camera switches before start",
+      "implementation": "Exists: optional mic, Mac audio and camera",
+      "evidenceAndGap": "Native/synthetic audio checks; real devices unproven"
+    },
+    {
+      "id": "C07",
+      "feature": "Device pickers, separate meters, test recording",
+      "implementation": "Partial: microphone and camera device menus",
+      "evidenceAndGap": "Device lists need physical checks; meters and quick test playback remain"
+    },
+    {
+      "id": "C08",
+      "feature": "Permission help and recovery",
+      "implementation": "Partial; prompts and text errors exist",
+      "evidenceAndGap": "No proven denial/retry journey; dedicated readiness view proposed, V01\u2013V03"
+    },
+    {
+      "id": "C09",
+      "feature": "Countdown, cancel preparation, remembered presets",
+      "implementation": "Partial: cancellable three-second countdown and remembered inputs",
+      "evidenceAndGap": "Demo/Call named presets remain; native compile evidence"
+    },
+    {
+      "id": "R01",
+      "feature": "Floating recording HUD and shrink/hide studio",
+      "implementation": "Exists: floating 60-point strip, drawing tools expand it",
+      "evidenceAndGap": "Native render; main window hides when capture begins"
+    },
+    {
+      "id": "R02",
+      "feature": "Include Clips UI in recorded video",
+      "implementation": "Exists: own application included; own audio excluded",
+      "evidenceAndGap": "SCContentFilter source verified; actual captured-window proof remains"
+    },
+    {
+      "id": "R03",
+      "feature": "Pause/resume, stop, elapsed time",
+      "implementation": "Exists",
+      "evidenceAndGap": "Synthetic clock/media proof; physical static-screen pause and controller races unproven, V04\u2013V06/V13"
+    },
+    {
+      "id": "R04",
+      "feature": "Reopen Clips during recording",
+      "implementation": "Exists via menu/reopen; page navigation is disabled during a take",
+      "evidenceAndGap": "Next capture policy must make reopened window visible in output"
+    },
+    {
+      "id": "R05",
+      "feature": "Keyboard controls",
+      "implementation": "Partial: app shortcuts plus global Control-Option-Space / Period",
+      "evidenceAndGap": "Registration recorded in native UI smoke; physical interaction and VoiceOver remain"
+    },
+    {
+      "id": "R06",
+      "feature": "Camera positioning and live inputs",
+      "implementation": "Partial; fixed-size draggable camera window",
+      "evidenceAndGap": "Resize/persist/live camera-off/mute missing; actual composition unproven"
+    },
+    {
+      "id": "R07",
+      "feature": "Device/display loss, lock/sleep, repeated commands",
+      "implementation": "Partial: stream-error and sleep interruption",
+      "evidenceAndGap": "Full unplug, route, lock, disk and race matrix remains"
+    },
+    {
+      "id": "R08",
+      "feature": "Restart or discard an unwanted take safely",
+      "implementation": "Missing dedicated action",
+      "evidenceAndGap": "Proposed; preserve the first take in recoverable trash"
+    },
+    {
+      "id": "S01",
+      "feature": "Durable original and new-file export",
+      "implementation": "Exists; committed segments, digests, decode checks, no overwrite",
+      "evidenceAndGap": "Synthetic evidence; no power-loss or worst-case loss-bound claim"
+    },
+    {
+      "id": "S02",
+      "feature": "Recover after process termination",
+      "implementation": "Partial; verified committed segments only",
+      "evidenceAndGap": "Synthetic SIGKILL evidence for tested checkpoints, V10"
+    },
+    {
+      "id": "S03",
+      "feature": "Repair manifest/orphan media",
+      "implementation": "Missing; corruption blocks export and preserves originals",
+      "evidenceAndGap": "Planned; reject-corruption tests do not prove repair, V11"
+    },
+    {
+      "id": "S04",
+      "feature": "Low disk and destination failures",
+      "implementation": "Partial; 128 MiB reserve and surfaced failures",
+      "evidenceAndGap": "Fault-injection and physical storage proof missing, V08\u2013V09"
+    },
+    {
+      "id": "S05",
+      "feature": "Storage location, size, retention, trash/restore",
+      "implementation": "Partial: chosen storage folder, Recently Deleted, undo move",
+      "evidenceAndGap": "No automatic original deletion; retention/usage UI remains"
+    },
+    {
+      "id": "E01",
+      "feature": "Preview and playback",
+      "implementation": "Exists with native AVPlayerView",
+      "evidenceAndGap": "Render evidence; generated media decodes; physical playback journey unproven"
+    },
+    {
+      "id": "E02",
+      "feature": "Rename and nondestructive trim/export",
+      "implementation": "Exists: rename, trim and remove-selection export",
+      "evidenceAndGap": "Saved edit recipe beside output; native decoded cut/trim tests"
+    },
+    {
+      "id": "E03",
+      "feature": "Export progress, cancellation, queue",
+      "implementation": "Partial: cancellable progress jobs, stale-result gate, separate Stop",
+      "evidenceAndGap": "One interactive export at a time; persistent background queue remains"
+    },
+    {
+      "id": "E04",
+      "feature": "Record another, retain earlier clip",
+      "implementation": "Exists",
+      "evidenceAndGap": "Source path; complete user journey unproven, V26"
+    },
+    {
+      "id": "L01",
+      "feature": "Local clips, thumbnails, title search, Finder",
+      "implementation": "Exists: local list, thumbnails, title search, verified preview cache",
+      "evidenceAndGap": "Native fixture renders; scale and cache-retention policy remain"
+    },
+    {
+      "id": "L02",
+      "feature": "Projects, notes, search beyond titles",
+      "implementation": "Partial: local notes per recording",
+      "evidenceAndGap": "Projects and notes search remain"
+    },
+    {
+      "id": "L03",
+      "feature": "Transcript search and captions",
+      "implementation": "Partial: optional SRT/WebVTT import and synchronized captions",
+      "evidenceAndGap": "No automatic transcription or transcript search; native evidence in build review"
+    },
+    {
+      "id": "H01",
+      "feature": "Export ordinary MP4 and native Share sheet",
+      "implementation": "Exists",
+      "evidenceAndGap": "Local export evidence; no proof of recipient access or remote delivery"
+    },
+    {
+      "id": "H02",
+      "feature": "Named folder destinations, verified copy, retry",
+      "implementation": "Partial: folder destination, digest-verified copy, idempotent retry",
+      "evidenceAndGap": "Native copy/retry test; saved destinations and persistent retries remain"
+    },
+    {
+      "id": "H03",
+      "feature": "Local agent commands and completion events",
+      "implementation": "Missing",
+      "evidenceAndGap": "Planned M4; clips-probe is only a fixture tool"
+    },
+    {
+      "id": "H04",
+      "feature": "Direct upload, share links, provider processing",
+      "implementation": "Partial: portable watch folder with HTML player",
+      "evidenceAndGap": "Local output only; no hosted upload, public link, access or provider service"
+    },
+    {
+      "id": "D01",
+      "feature": "Local synchronous diagnostic file",
+      "implementation": "Exists: typed JSONL writer on dedicated utility queue",
+      "evidenceAndGap": "Lifecycle, permissions, output dimensions, frame summaries, encoder waits and exports; one-second flush interval"
+    },
+    {
+      "id": "D02",
+      "feature": "Reveal/export diagnostic bundle",
+      "implementation": "Exists: Save diagnostic report and reveal outbox",
+      "evidenceAndGap": "Strict allowlist; no arbitrary error strings, media, paths or attachments"
+    },
+    {
+      "id": "D03",
+      "feature": "Bounded logs and recording correlation",
+      "implementation": "Partial: file/total/age bounds, run and recording correlation",
+      "evidenceAndGap": "Some performance/provider metrics still future work; privacy/validation tests pass"
+    },
+    {
+      "id": "D04",
+      "feature": "Sanitized reports committed to repo by local agent",
+      "implementation": "Partial: validated outbox and local Git publication command",
+      "evidenceAndGap": "Python validator tests; actual local-agent GitHub authentication/configuration remains"
+    },
+    {
+      "id": "D05",
+      "feature": "Incident to reproducer to regression evidence",
+      "implementation": "Partial: versioned report plus source commit and regression suites",
+      "evidenceAndGap": "No real physical incident report has completed the loop"
+    },
+    {
+      "id": "Q01",
+      "feature": "Mac CI, package icon, development ZIP",
+      "implementation": "Exists: Mac build, tests, native renders, development ZIP, iPad simulator build",
+      "evidenceAndGap": "See pinned build review; development artifacts are not notarized releases"
+    },
+    {
+      "id": "Q02",
+      "feature": "Company-signed, notarized install",
+      "implementation": "Partial; release script exists",
+      "evidenceAndGap": "No release artifact/signing evidence found in fetched repo/releases; local Mac action remains"
+    },
+    {
+      "id": "Q03",
+      "feature": "Physical capture and supported-device matrix",
+      "implementation": "No completed physical evidence found",
+      "evidenceAndGap": "V01\u2013V38 remain subject to their exact evidence requirements; M5 open"
+    },
+    {
+      "id": "Q04",
+      "feature": "Update/reinstall path",
+      "implementation": "Missing product flow",
+      "evidenceAndGap": "Proposed; stable identity, preserved recordings/permissions, user-controlled updates"
+    },
+    {
+      "id": "Q05",
+      "feature": "Browser edition / other native platforms",
+      "implementation": "Missing",
+      "evidenceAndGap": "Browser later M6; other native platforms separate decision"
+    },
+    {
+      "id": "A01",
+      "feature": "Pair/reconnect/revoke a drawing device",
+      "implementation": "Partial: ephemeral nearby pairing, two-device code approval, disconnect/re-pair",
+      "evidenceAndGap": "Crypto transcript/replay tests pass; actual radios, reconnect and revocation need two devices"
+    },
+    {
+      "id": "A02",
+      "feature": "Selected-area preview for capable remote drawing adapters",
+      "implementation": "Partial: explicitly enabled selected recording preview, one frame in flight",
+      "evidenceAndGap": "Native implementation; image quality, latency and radio backpressure unproven"
+    },
+    {
+      "id": "A03",
+      "feature": "Device-neutral ink visible on Mac and in export",
+      "implementation": "Exists in source: shared portable scene and native overlay renderer",
+      "evidenceAndGap": "Local adapter render tested; physical screen/video inclusion still unproven"
+    },
+    {
+      "id": "A04",
+      "feature": "Laser pointer and fading marks",
+      "implementation": "Partial: laser tool and periodic expiration",
+      "evidenceAndGap": "Physical feel and exact fading timing need validation"
+    },
+    {
+      "id": "A05",
+      "feature": "Whiteboard canvas and return to the demo",
+      "implementation": "Exists in source: optional Mac whiteboard background",
+      "evidenceAndGap": "Native source; physical capture proof remains"
+    },
+    {
+      "id": "A06",
+      "feature": "Ink geometry, latency and reconnect correctness",
+      "implementation": "Partial: normalized geometry, epoch changes, ordered messages, re-pair",
+      "evidenceAndGap": "Physical Pencil latency, rotation, display mapping and recovery remain open"
+    },
+    {
+      "id": "A07",
+      "feature": "Optional ink source and structured performance evidence",
+      "implementation": "Partial: local annotation snapshot/timeline sidecars and aggregate diagnostics",
+      "evidenceAndGap": "Sidecars checkpoint asynchronously; editable re-render and detailed latency trace remain"
+    },
+    {
+      "id": "A08",
+      "feature": "Mouse/trackpad drawing and drawing-off recorder path",
+      "implementation": "Exists: pointer adapter and optional-module disable path",
+      "evidenceAndGap": "Native adapter routing/disable checks; physical mouse drawing remains"
+    },
+    {
+      "id": "A09",
+      "feature": "Additional pen/touch/browser input adapters",
+      "implementation": "Partial: iPad Pencil/finger companion and adapter interface",
+      "evidenceAndGap": "Other vendors/browser/Android adapters remain"
+    },
+    {
+      "id": "X01",
+      "feature": "Narrow versioned subsystem contracts and capability registry",
+      "implementation": "Exists: versioned contracts, typed adapter registration/lookup",
+      "evidenceAndGap": "Drawing, editing, export, processors and destinations registered; no arbitrary code loader"
+    },
+    {
+      "id": "X02",
+      "feature": "Editing/processing/sharing jobs separate from recording",
+      "implementation": "Exists: export/edit/destination contracts, job gate and retained originals",
+      "evidenceAndGap": "Native cut/source-preservation/copy/retry checks; durable job queue remains"
+    },
+    {
+      "id": "X03",
+      "feature": "Extension compatibility, isolation and disable path",
+      "implementation": "Partial: bundled capability registry and disable path",
+      "evidenceAndGap": "First-party modules share process; external crash/resource isolation remains unimplemented"
+    },
+    {
+      "id": "X04",
+      "feature": "Portable artifacts and missing-extension behavior",
+      "implementation": "Partial: MP4, JSON ink/recipes, notes, WebVTT, portable watch folder",
+      "evidenceAndGap": "Unknown third-party edit round-trip is future SDK work"
+    },
+    {
+      "id": "X05",
+      "feature": "Extension diagnostics and contract acceptance",
+      "implementation": "Partial: contract, privacy, stale job and crypto regression tests",
+      "evidenceAndGap": "Complete external-isolation and hardware matrix remains open"
+    }
+  ]
+}

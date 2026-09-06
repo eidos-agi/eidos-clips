@@ -7,9 +7,9 @@
 
 Eidos Clips is a **free, MIT-licensed** native Mac screen recorder. Capture your screen, camera, microphone, and system audio; review and trim the result; keep an ordinary video file. No account, no subscription, no required backend.
 
-**Status: first native prototype.** Physical Mac validation is still pending. See [implementation status](docs/IMPLEMENTATION.md). A green synthetic test is not evidence that real screen, camera, microphone, or speaker capture works.
+**Status: modular native application in active qualification.** Physical Mac validation is still pending. See [implementation status](docs/IMPLEMENTATION.md). A green synthetic test is not evidence that real screen, camera, microphone, or speaker capture works.
 
-**Next:** a compact Loom-style panel, region picker, Clips UI included in the recording, and diagnostic logs — [docs/WANT.md](docs/WANT.md).
+**Built:** compact capture/HUD, region selection, optional on-screen drawing, native iPad companion, modular editing/sharing/processing, and a structured diagnostic outbox. See the [feature map](docs/FEATURE-MAP.md), [execution plan](docs/BUILD-PLAN.md) and [build evidence](docs/BUILD-REVIEW.md).
 
 ## Build and release
 
@@ -36,7 +36,13 @@ The release script uses the existing **Developer ID Application: Eidos AGI LLC (
 
 Choose a display, select optional inputs, then Start recording. Pause and Finish are also available in the menu bar. Your clips stay under `~/Movies/Eidos Clips/`. Click a clip to review or recover completed media. Trim exports keep the original.
 
-Current capture is **whole display only**, at most 1920 pixels wide at a nominal 30 fps. Camera uses a floating preview window on that display. Window/region capture, device pickers, meters, live mute/camera controls, remembered presets, trash, and agent handoff remain planned. The app prevents new capture while exporting.
+Capture supports a whole display or dragged region, capped at a 1920-pixel longest edge and nominal 30 fps. Clips windows and the floating drawing/camera overlays inside the capture area are included; the app's own audio is excluded. A 420-point ready panel shrinks to a floating recording strip. Control-Option-Space starts/pauses/resumes; Control-Option-Period finishes. Mic/camera selection and input choices are remembered. Live input meters and live mute remain open work.
+
+Optional modules provide mouse/trackpad drawing, pen/highlighter/eraser/laser/whiteboard tools, trim/cut recipes, caption import, verified folder copies and portable watch folders. Basic recording/export works with optional modules off. No untrusted native plugin loader is enabled. [Subsystem contracts](docs/PLUGINS.md) keep device, editing, processing and sharing code separate.
+
+The native iPad companion is in `Companion/ClipsDraw.xcodeproj`. Build its simulator artifact with `bash scripts/build-companion.sh`; use Xcode and existing Apple development provisioning for a physical iPad. Pair by confirming the same code on both screens. Drawing is enabled during Mac recording; selected-area preview is a separate explicit toggle. Actual Pencil and network behavior remain unproven until physical tests.
+
+The app can save a content-free report for your local agent. `scripts/diagnostics-agent.py` validates it and, with `--publish`, uses existing local Git credentials to commit only validated packets to a dedicated diagnostics branch. See [the handoff](docs/BUILD-PLAN.md#local-agent-build-and-finish-device-evidence).
 
 ## The product we are building
 
@@ -56,6 +62,8 @@ Start with the [feature map](docs/FEATURE-MAP.md) to see what exists, how to use
 |---|---|
 | [Product and experience](docs/PRODUCT.md) | Users, recording flows, scope, visual direction, and platform boundaries |
 | [Architecture](docs/ARCHITECTURE.md) | Capture pipeline, recording lifecycle, recovery, storage, and provider boundaries |
+| [Execution ledger](docs/BUILD-PLAN.md) | Implemented code, remaining work, local-agent handoff and completion rules |
+| [Build evidence](docs/BUILD-REVIEW.md) | Exact source commits, native checks, artifacts and unproven hardware |
 | [Delivery plan](docs/ROADMAP.md) | Ordered work packages, dependencies, release gates, and next executable work |
 | [Validation plan](docs/VALIDATION.md) | Failure tests, real-device scenarios, measurable targets, and evidence requirements |
 | [Agent and handoff contract](docs/INTEGRATIONS.md) | Local commands, completion events, project metadata, and destination behavior |

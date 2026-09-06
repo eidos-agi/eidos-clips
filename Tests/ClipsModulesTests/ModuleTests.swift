@@ -2,6 +2,16 @@ import XCTest
 @testable import ClipsModules
 
 final class ModuleTests: XCTestCase {
+    func testCaptionsImportEscapeAndFollowCutTimeline() throws {
+        let data = Data("1\n00:00:02,000 --> 00:00:06,000\nA < B & C\n".utf8)
+        let cues = try Captions.parse(data)
+        XCTAssertEqual(cues.count, 1)
+        let mapped = Captions.remap(cues, through: EditRecipe(ranges: [EditRange(0, 3), EditRange(5, 10)]))
+        XCTAssertEqual(mapped.map(\.start), [2, 3]); XCTAssertEqual(mapped.map(\.end), [3, 4])
+        XCTAssertEqual(try Captions.parse(Captions.webVTT(mapped)), mapped)
+        XCTAssertTrue(String(decoding: Captions.webVTT(cues), as: UTF8.self).contains("A &lt; B &amp; C"))
+        XCTAssertThrowsError(try Captions.parse(Data("1\n00:00:06,000 --> 00:00:02,000\nbad".utf8)))
+    }
     func testPairingAuthenticatesTranscriptAndRejectsReplayOrTampering() throws {
         let host = PairingChannel(isHost: true), device = PairingChannel(isHost: false)
         try host.accept(device.hello); try device.accept(host.hello)

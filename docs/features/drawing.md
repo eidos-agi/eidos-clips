@@ -1,5 +1,8 @@
 # Drawing with any supported input, or no drawing at all
 
+> **Implementation update — September 6, 2026:** Executable code now implements the compact capture, modular tools, local drawing, native iPad companion, editing/destination and diagnostic paths described in [../BUILD-PLAN.md](../BUILD-PLAN.md). Use [../FEATURE-MAP.md](../FEATURE-MAP.md) for current feature status and [../BUILD-REVIEW.md](../BUILD-REVIEW.md) for exact proof. Historical “missing/proposed” statements below describe the earlier baseline unless listed as still open in that ledger. Physical and signing acceptance are not implied.
+
+
 **Requested architecture, not implemented.** The [optional-subsystem design](../PLUGINS.md) separates annotation state/rendering from input devices. [Draw from iPad](ipad-ink.md) is one proposed adapter. Feature IDs A01–A09; host boundaries X01–X05 in [FEATURE-MAP.md](../FEATURE-MAP.md).
 
 ## Sub-features

@@ -110,7 +110,7 @@ public enum MediaExport {
             }
         }
         defer { monitor.cancel() }
-        await withTaskCancellationHandler(operation: { await exporter.export() }, onCancel: { exporter.cancelExport() })
+        try await withTaskCancellationHandler(operation: { try Task.checkCancellation(); await exporter.export() }, onCancel: { exporter.cancelExport() })
         try Task.checkCancellation()
         guard exporter.status == .completed else { throw exporter.error ?? ClipsError.media("Export did not complete.") }
         guard try decodedSamples(at: temporary) > 0 else { throw ClipsError.media("Export contains no video.") }

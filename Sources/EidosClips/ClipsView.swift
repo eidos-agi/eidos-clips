@@ -266,6 +266,7 @@ struct ClipsView: View {
             }
             ZStack {
                 PlayerSurface(player: model.player)
+                if !model.captionText.isEmpty { VStack { Spacer(); Text(model.captionText).font(.system(size: 15, weight: .medium)).multilineTextAlignment(.center).padding(8).background(.black.opacity(0.8), in: RoundedRectangle(cornerRadius: 5)).padding(.bottom, 45) }.allowsHitTesting(false) }
                 if let poster = model.poster, !model.hasPlayed {
                     Image(nsImage: poster).resizable().scaledToFit().padding(.bottom, 40).allowsHitTesting(false)
                 }
@@ -299,7 +300,7 @@ struct ClipsView: View {
             }.padding(18).background(ClipsStyle.surface, in: RoundedRectangle(cornerRadius: 10))
 
             TextField("Notes for this clip", text: $model.notes, axis: .vertical).lineLimit(2...4).textFieldStyle(.roundedBorder)
-            HStack { Button("Save notes") { model.saveNotes() }; Button("Save verified copy…") { model.saveCopy() } }.buttonStyle(QuietButton()).disabled(model.busy)
+            HStack { Button("Save notes") { model.saveNotes() }; Button("Save verified copy…") { model.saveCopy() }; Menu("More") { Button("Import captions…") { model.importCaptions() }; Button("Save watch folder…") { model.saveWatchFolder() } } }.buttonStyle(QuietButton()).disabled(model.busy)
         }
     }
     private var reviewActions: some View {

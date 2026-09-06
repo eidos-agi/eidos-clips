@@ -1,5 +1,8 @@
 # Diagnose, build, and install
 
+> **Implementation update — September 6, 2026:** Executable code now implements the compact capture, modular tools, local drawing, native iPad companion, editing/destination and diagnostic paths described in [../BUILD-PLAN.md](../BUILD-PLAN.md). Use [../FEATURE-MAP.md](../FEATURE-MAP.md) for current feature status and [../BUILD-REVIEW.md](../BUILD-REVIEW.md) for exact proof. Historical “missing/proposed” statements below describe the earlier baseline unless listed as still open in that ledger. Physical and signing acceptance are not implied.
+
+
 Baseline: [feature map](../FEATURE-MAP.md). IDs D01–D05 and Q01–Q05. The full requested feedback-loop design is in [DIAGNOSTICS.md](../DIAGNOSTICS.md). Sources: [app lifecycle](../../Sources/EidosClips/main.swift), [encoder](../../Sources/ClipsMedia/SegmentedRecorder.swift), [native workflow](../../.github/workflows/native.yml), [release script](../../scripts/release-app.sh). Signing procedure: [LOCAL-AGENT.md](../LOCAL-AGENT.md) and [SIGNING.md](../SIGNING.md).
 
 ## Sub-features

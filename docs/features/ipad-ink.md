@@ -1,5 +1,8 @@
 # Draw from iPad with Apple Pencil
 
+> **Implementation update — September 6, 2026:** Executable code now implements the compact capture, modular tools, local drawing, native iPad companion, editing/destination and diagnostic paths described in [../BUILD-PLAN.md](../BUILD-PLAN.md). Use [../FEATURE-MAP.md](../FEATURE-MAP.md) for current feature status and [../BUILD-REVIEW.md](../BUILD-REVIEW.md) for exact proof. Historical “missing/proposed” statements below describe the earlier baseline unless listed as still open in that ledger. Physical and signing acceptance are not implied.
+
+
 **Requested by Daniel on September 6, 2026; not implemented.** Core outcome: while recording from a MacBook Pro, draw with Apple Pencil on a paired iPad and see those marks on the Mac and in the finished recording. No change to the recording app's local-first or replaceable-agent architecture is needed. This is an iPad input companion, not a commitment to build a full iPad recorder.
 
 This is a specialization of [device-neutral drawing](drawing.md), governed by [PLUGINS.md](../PLUGINS.md). Mouse/trackpad drawing and recording with drawing off remain usable without an iPad. PencilKit and the pairing transport stay inside this adapter; canonical ink and the trusted renderer belong to the host annotation subsystem.

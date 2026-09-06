@@ -30,6 +30,10 @@ final class ClipsModel: ObservableObject {
     let exportAdapter = NativeExportAdapter()
     let editProvider = BasicEditProvider()
     let folderDestination = LocalFolderDestination()
+    let captionProcessor = SubtitleImportProcessor()
+    let watchDestination = LocalWatchDestination()
+    @Published var captions: [CaptionCue] = []
+    @Published var captionText = ""
     let jobGate = JobGate()
     @Published var selectedDisplayID: UInt32?
     @Published var region: CaptureRegion?
@@ -40,9 +44,9 @@ final class ClipsModel: ObservableObject {
     @Published var lastTrashed: URL?
     private var job: Task<Void, Never>?
     private var annotationPackage: URL?
-    private var annotationEvents: [TimedInk] = []
+    private var annotationEvents: [AnnotationArchive.TimedInk] = []
+    let annotationArchive = AnnotationArchive()
     private var targetFrame: CGRect?
-    struct TimedInk: Codable { let elapsed: Double; let operation: InkOperation }
     var configureWindow: (() -> Void)?
     @Published var page: ClipsPage = .record
     @Published var phase: CaptureState = .idle
@@ -87,6 +91,7 @@ final class ClipsModel: ObservableObject {
             try registry.register(drawing: drawing.pointer); try registry.register(drawing: nearby)
             try registry.register(exporter: exportAdapter); try registry.register(editor: editProvider)
             try registry.register(destination: folderDestination)
+            try registry.register(destination: watchDestination); try registry.register(processor: captionProcessor)
             try registry.register(ModuleDescriptor(id: "org.eidos.diagnostics.outbox", name: "Diagnostic outbox", capabilities: [.diagnostics]))
         } catch { notice = error.localizedDescription }
         nearby.onOperation = { [weak self] in self?.drawing.accept($0) }
@@ -102,9 +107,11 @@ final class ClipsModel: ObservableObject {
         DiagnosticLog.shared.record(.appLaunch)
         capture.packageReady = { [weak self] in self?.annotationPackage = $0; self?.annotationEvents = [] }
         capture.prepared = { [weak self] displayID, region in self?.prepareDrawing(displayID: displayID, region: region) }
+        annotationArchive.failed = { [weak self] in Task { @MainActor in self?.notice = "Drawing sidecar could not be saved. Recorded video is retained." } }
+        drawing.onRejected = { [weak self] in self?.nearby.deactivate(); self?.drawing.setInteractive(false) }
         drawing.onAccepted = { [weak self] operation in
             guard let self, self.phase == .recording, self.annotationEvents.count < 20_000 else { return }
-            self.annotationEvents.append(TimedInk(elapsed: self.capture.elapsed, operation: operation))
+            self.annotationEvents.append(AnnotationArchive.TimedInk(elapsed: self.capture.elapsed, operation: operation))
             if operation.kind != .append { self.saveAnnotations() }
         }
 
@@ -120,9 +127,16 @@ final class ClipsModel: ObservableObject {
             self.stateChanged?()
         }
         capture.report = { [weak self] message in self?.notice = message }
-        capture.completed = { [weak self] package, export in self?.saveAnnotations(); self?.openReview(package: package, export: export) }
+        capture.completed = { [weak self] package in
+            self?.saveAnnotations()
+            Task { @MainActor in guard let self, let clip = self.readClip(package) else { return }; self.open(clip) }
+        }
         timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.elapsed = self?.capture.elapsed ?? 0 }
+            Task { @MainActor in
+                guard let self else { return }; self.elapsed = self.capture.elapsed
+                let time = self.player.currentTime().seconds
+                self.captionText = self.captions.filter { $0.start <= time && time < $0.end }.map(\.text).joined(separator: "\n")
+            }
         }
         let preferences = UserDefaults.standard
         microphone = preferences.object(forKey: "microphone") as? Bool ?? true
@@ -258,6 +272,7 @@ final class ClipsModel: ObservableObject {
         }
         duration = AVURLAsset(url: export).duration.seconds
         trimStart = 0; trimEnd = duration; trimming = false; page = .review
+        captions = (try? JSONDecoder().decode([CaptionCue].self, from: Data(contentsOf: package.appendingPathComponent("captions.json")))) ?? []
         notes = (try? String(contentsOf: package.appendingPathComponent("notes.txt"))) ?? ""
         refreshLibrary(); notice = nil; configureWindow?(); showWindow?()
     }
@@ -288,6 +303,7 @@ final class ClipsModel: ObservableObject {
                 let result = try await exporter.run(package: selected.package, request: request, to: url, recipe: recipe, progress: { value in Task { @MainActor in self.jobProgress = value } })
                 guard jobGate.finish(request, input: try artifact(for: selected.package)) else { throw CancellationError() }
                 exportedURL = result
+                if !captions.isEmpty { try Captions.webVTT(recipe.map { Captions.remap(captions, through: $0) } ?? captions).write(to: result.deletingPathExtension().appendingPathExtension("vtt"), options: .atomic) }
                 if let recipe { try JSONEncoder().encode(recipe).write(to: result.deletingPathExtension().appendingPathExtension("edit.json"), options: .atomic) }
                 notice = "Exported. Your original recording is kept."
             } catch is CancellationError { notice = "Cancelled. Your recording is kept." }
@@ -330,10 +346,7 @@ final class ClipsModel: ObservableObject {
     }
     func saveAnnotations() {
         guard let package = annotationPackage else { return }
-        do {
-            try JSONEncoder().encode(drawing.scene.snapshot).write(to: package.appendingPathComponent("annotations.json"), options: .atomic)
-            try JSONEncoder().encode(annotationEvents).write(to: package.appendingPathComponent("annotation-timeline.json"), options: .atomic)
-        } catch { notice = "Drawing sidecar could not be saved. The recorded video is retained." }
+        annotationArchive.submit(package: package, snapshot: drawing.scene.snapshot, events: annotationEvents)
     }
     func setModulesEnabled(_ value: Bool) {
         modulesEnabled = value
@@ -395,6 +408,43 @@ final class ClipsModel: ObservableObject {
                 guard let adapter = registry.destination(folderDestination.descriptor.id) else { throw ModuleError.invalid("Folder delivery module is disabled.") }
                 _ = try await adapter.deliver(source, request: request, to: destination)
                 notice = "Verified copy saved."
+            } catch { notice = error.localizedDescription }
+        }
+    }
+
+    func importCaptions() {
+        guard let selected, canRecord, let processor = registry.processor(captionProcessor.descriptor.id) else { return }
+        let panel = NSOpenPanel(); panel.canChooseDirectories = false; panel.allowsMultipleSelection = false
+        panel.message = "Choose an SRT or WebVTT file. Caption text stays with this recording."
+        guard panel.runModal() == .OK, let source = panel.url else { return }
+        busy = true
+        job = Task {
+            defer { busy = false; job = nil }
+            let output = selected.package.appendingPathComponent(".captions-\(UUID()).vtt")
+            defer { try? FileManager.default.removeItem(at: output) }
+            do {
+                let request = JobRequest(adapter: processor.descriptor, input: ArtifactReference(id: selected.id, sha256: try RecordingStore.digest(source), revision: 1))
+                _ = try await processor.process(source, request: request, to: output)
+                let cues = try Captions.parse(Data(contentsOf: output))
+                guard cues.allSatisfy({ $0.end <= duration + 0.1 }) else { throw ModuleError.invalid("Caption timing extends beyond this recording.") }
+                try JSONEncoder().encode(cues).write(to: selected.package.appendingPathComponent("captions.json"), options: .atomic)
+                captions = cues; notice = "Captions imported. Exports include an aligned WebVTT file."
+            } catch { notice = error.localizedDescription }
+        }
+    }
+    func saveWatchFolder() {
+        guard let source = exportedURL, canRecord, let adapter = registry.destination(watchDestination.descriptor.id) else { return }
+        let panel = NSSavePanel(); panel.nameFieldStringValue = "Clips Watch"
+        panel.message = "Save a folder with a video and player page. Send the whole folder to your recipient."
+        guard panel.runModal() == .OK, let destination = panel.url else { return }
+        busy = true
+        job = Task {
+            defer { busy = false; job = nil }
+            do {
+                let request = JobRequest(adapter: adapter.descriptor, input: ArtifactReference(id: UUID(), sha256: try RecordingStore.digest(source), revision: 1))
+                _ = try await adapter.deliver(source, request: request, to: destination)
+                notice = "Watch folder saved. Send the whole folder; this does not create a hosted link."
+                NSWorkspace.shared.activateFileViewerSelecting([destination])
             } catch { notice = error.localizedDescription }
         }
     }

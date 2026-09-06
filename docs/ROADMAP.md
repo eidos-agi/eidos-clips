@@ -1,5 +1,8 @@
 # Delivery plan
 
+> **Implementation update — September 6, 2026:** Executable code now implements the compact capture, modular tools, local drawing, native iPad companion, editing/destination and diagnostic paths described in [BUILD-PLAN.md](BUILD-PLAN.md). Use [FEATURE-MAP.md](FEATURE-MAP.md) for current feature status and [BUILD-REVIEW.md](BUILD-REVIEW.md) for exact proof. Historical “missing/proposed” statements below describe the earlier baseline unless listed as still open in that ledger. Physical and signing acceptance are not implied.
+
+
 The first native prototype is implemented. No milestone exit gate is complete yet. [Implementation status](IMPLEMENTATION.md) records the current scope, deliberate deviations, and evidence limits. CI produces a source-linked evidence artifact; physical Mac cases remain pending. The ordered work packages below remain the acceptance contract. [FEATURE-MAP.md](FEATURE-MAP.md) supplies user paths and implementation/evidence status; [LOOM-GAPS.md](LOOM-GAPS.md) records broader opportunities for discussion. Neither adds all proposed features to the release gate.
 
 ## Milestones

@@ -1,5 +1,8 @@
 # Native prototype status
 
+> **Implementation update — September 6, 2026:** Executable code now implements the compact capture, modular tools, local drawing, native iPad companion, editing/destination and diagnostic paths described in [BUILD-PLAN.md](BUILD-PLAN.md). Use [FEATURE-MAP.md](FEATURE-MAP.md) for current feature status and [BUILD-REVIEW.md](BUILD-REVIEW.md) for exact proof. Historical “missing/proposed” statements below describe the earlier baseline unless listed as still open in that ledger. Physical and signing acceptance are not implied.
+
+
 This is a first executable slice, not completion of M0–M5. The original milestone gates remain in [ROADMAP.md](ROADMAP.md) and [VALIDATION.md](VALIDATION.md).
 
 Current user paths and evidence are mapped in [FEATURE-MAP.md](FEATURE-MAP.md). The include-Clips policy in WANT.md is a requested change; the exclusion behavior described below is the current baseline, not the desired future behavior.

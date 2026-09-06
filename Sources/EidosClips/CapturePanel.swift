@@ -112,6 +112,7 @@ struct DeviceConnectionView: View {
                 Button("Codes match — connect") { nearby.link.approve() }.disabled(nearby.localApproved)
             }
             if nearby.approved {
+                Toggle("Whiteboard on Mac", isOn: Binding(get: { model.drawing.whiteboard }, set: { model.drawing.whiteboard = $0 }))
                 Toggle("Show recording preview on iPad", isOn: Binding(get: { nearby.sharingPreview }, set: { model.shareDevicePreview($0) }))
                     .disabled(model.phase != .recording)
                 Text("The preview contains the selected recording area. Drawing stops while recording is paused.").font(.caption).foregroundStyle(.secondary)
@@ -142,7 +143,7 @@ struct RecordingHUD: View {
                     .padding(.horizontal, 12).padding(.vertical, 9).background(ClipsStyle.accent, in: RoundedRectangle(cornerRadius: 8))
             }.buttonStyle(.plain).padding(.horizontal, 18).frame(height: 60)
                 .disabled(model.phase == .preparing || model.phase == .finalizing)
-            if model.modulesEnabled {
+            if model.modulesEnabled && drawing.enabled {
                 Divider().overlay(ClipsStyle.line)
                 HStack(spacing: 12) {
                     Picker("Tool", selection: $drawing.tool) {
