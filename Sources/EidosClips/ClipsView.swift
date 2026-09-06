@@ -28,10 +28,15 @@ struct ClipsView: View {
                         case .library: libraryPage
                         case .review: reviewPage
                         }
-                    }.padding(30).frame(maxWidth: .infinity, alignment: .topLeading)
+                    }.padding(24).frame(maxWidth: .infinity, alignment: .topLeading)
                 }
                 if model.page == .record {
-                    recordActions.padding(.horizontal, 30).padding(.vertical, 20)
+                    recordActions.padding(.horizontal, 24).padding(.vertical, 20)
+                        .background(ClipsStyle.canvas)
+                        .overlay(alignment: .top) { Rectangle().fill(ClipsStyle.line).frame(height: 1) }
+                }
+                if model.page == .review {
+                    reviewActions.padding(.horizontal, 24).padding(.vertical, 20)
                         .background(ClipsStyle.canvas)
                         .overlay(alignment: .top) { Rectangle().fill(ClipsStyle.line).frame(height: 1) }
                 }
@@ -105,7 +110,7 @@ struct ClipsView: View {
             }
             Image(systemName: "internaldrive").font(.system(size: 12)).foregroundStyle(ClipsStyle.muted)
             Text("On this Mac").font(.system(size: 11)).foregroundStyle(ClipsStyle.muted)
-        }.padding(.horizontal, 30).frame(height: 64)
+        }.padding(.horizontal, 24).frame(height: 64)
     }
 
     private var recordPage: some View {
@@ -175,7 +180,7 @@ struct ClipsView: View {
                     }
                     Spacer()
                 }.padding(20)
-            }.frame(height: 238)
+            }.frame(height: 178)
             HStack(spacing: 10) {
                 Image(systemName: "display").foregroundStyle(ClipsStyle.muted)
                 if model.displayNames.isEmpty {
@@ -253,7 +258,12 @@ struct ClipsView: View {
                 }
                 Button("Save name") { model.saveTitle() }.buttonStyle(QuietButton()).disabled(model.busy)
             }
-            PlayerSurface(player: model.player).frame(height: 310).clipShape(RoundedRectangle(cornerRadius: 12))
+            ZStack {
+                PlayerSurface(player: model.player)
+                if let poster = model.poster, !model.hasPlayed {
+                    Image(nsImage: poster).resizable().scaledToFit().padding(.bottom, 40).allowsHitTesting(false)
+                }
+            }.frame(height: model.trimming ? 220 : 270).clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(ClipsStyle.line))
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
@@ -264,22 +274,26 @@ struct ClipsView: View {
                 if model.trimming && model.duration > 0.1 {
                     HStack(spacing: 22) {
                         VStack(alignment: .leading) {
-                            Text("START  \(ClipsModel.time(model.trimStart))").font(.system(size: 10, weight: .medium, design: .monospaced))
+                            Text("START  \(ClipsModel.trimTime(model.trimStart))").font(.system(size: 10, weight: .medium, design: .monospaced))
                             Slider(value: $model.trimStart, in: 0...max(0.001, model.trimEnd - 0.1)) { editing in if !editing { model.seek(model.trimStart) } }
                                 .accessibilityLabel("Trim start")
                         }
                         VStack(alignment: .leading) {
-                            Text("END  \(ClipsModel.time(model.trimEnd))").font(.system(size: 10, weight: .medium, design: .monospaced))
+                            Text("END  \(ClipsModel.trimTime(model.trimEnd))").font(.system(size: 10, weight: .medium, design: .monospaced))
                             Slider(value: $model.trimEnd, in: min(model.duration - 0.001, model.trimStart + 0.1)...model.duration) { editing in if !editing { model.seek(model.trimEnd) } }
                                 .accessibilityLabel("Trim end")
                         }
                     }.disabled(model.busy)
-                    Text("Exporting \(ClipsModel.time(model.trimEnd - model.trimStart)). Your full recording stays untouched.")
+                    Text("Exporting \(ClipsModel.trimTime(model.trimEnd - model.trimStart)). Your full recording stays untouched.")
                         .font(.system(size: 11)).foregroundStyle(ClipsStyle.muted)
                 } else {
                     Text("Keep the good part. Your original stays exactly as it is.").font(.system(size: 11)).foregroundStyle(ClipsStyle.muted)
                 }
             }.padding(18).background(ClipsStyle.surface, in: RoundedRectangle(cornerRadius: 10))
+
+        }
+    }
+    private var reviewActions: some View {
             HStack {
                 Button { model.showFiles() } label: { Label("Show in Finder", systemImage: "folder") }.buttonStyle(QuietButton())
                 Spacer()
@@ -287,8 +301,8 @@ struct ClipsView: View {
                 Button { model.export() } label: { Label(model.trimming ? "Export trim" : "Export clip", systemImage: "arrow.down.to.line") }
                     .buttonStyle(PrimaryButton()).disabled(model.busy)
             }
-        }
     }
+
 }
 
 struct ClipTile: View {

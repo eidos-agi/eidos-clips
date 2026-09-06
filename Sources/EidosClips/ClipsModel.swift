@@ -36,6 +36,9 @@ final class ClipsModel: ObservableObject {
     @Published var selected: LibraryClip?
     @Published var exportedURL: URL?
     @Published var player = AVPlayer()
+    @Published var poster: NSImage?
+    @Published var hasPlayed = false
+    private var playbackObservation: AnyCancellable?
     @Published var title = ""
     @Published var duration = 0.0
     @Published var trimStart = 0.0
@@ -140,6 +143,14 @@ final class ClipsModel: ObservableObject {
     func openReview(package: URL, export: URL) {
         guard let clip = readClip(package) else { return }
         selected = clip; title = clip.title; exportedURL = export; player = AVPlayer(url: export)
+        poster = nil; hasPlayed = false
+        playbackObservation = player.publisher(for: \.timeControlStatus).receive(on: DispatchQueue.main).sink { [weak self] state in
+            if state == .playing { self?.hasPlayed = true }
+        }
+        Task {
+            let image = await loadThumbnail(clip)
+            if self.selected?.id == clip.id { self.poster = image }
+        }
         duration = AVURLAsset(url: export).duration.seconds
         trimStart = 0; trimEnd = duration; trimming = false; page = .review
         refreshLibrary(); notice = nil; showWindow?()
@@ -170,7 +181,7 @@ final class ClipsModel: ObservableObject {
         }
     }
 
-    func seek(_ seconds: Double) { player.seek(to: CMTime(seconds: seconds, preferredTimescale: 600)) }
+    func seek(_ seconds: Double) { hasPlayed = true; player.seek(to: CMTime(seconds: seconds, preferredTimescale: 600)) }
     func showFiles() {
         if let exportedURL, page == .review { NSWorkspace.shared.activateFileViewerSelecting([exportedURL]); return }
         try? FileManager.default.createDirectory(at: capture.root, withIntermediateDirectories: true)
@@ -179,6 +190,10 @@ final class ClipsModel: ObservableObject {
     func share() {
         guard let exportedURL, let view = NSApp.keyWindow?.contentView else { return }
         NSSharingServicePicker(items: [exportedURL]).show(relativeTo: NSRect(x: view.bounds.maxX - 180, y: view.bounds.maxY - 70, width: 1, height: 1), of: view, preferredEdge: .minY)
+    }
+    static func trimTime(_ seconds: Double) -> String {
+        let tenths = Int((max(0, seconds.isFinite ? seconds : 0) * 10).rounded())
+        return String(format: "%02d:%02d.%d", tenths / 600, (tenths / 10) % 60, tenths % 10)
     }
     static func time(_ seconds: Double) -> String {
         let value = Int(max(0, seconds.isFinite ? seconds : 0))
