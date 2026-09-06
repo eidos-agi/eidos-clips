@@ -19,6 +19,7 @@ public final class SegmentedRecorder: @unchecked Sendable {
     private var finishing = false
     private let segmentSeconds: Double
     private let onFailure: (Error) -> Void
+    private let requiredTracks: Set<TrackKind>
 
     private final class Part {
         let writer: AVAssetWriter
@@ -36,13 +37,14 @@ public final class SegmentedRecorder: @unchecked Sendable {
     }
 
     public init(root: URL, title: String, origin: Double, segmentSeconds: Double = 2,
-                onFailure: @escaping (Error) -> Void = { _ in }) throws {
+                requiredTracks: Set<TrackKind> = [.video], onFailure: @escaping (Error) -> Void = { _ in }) throws {
         guard segmentSeconds.isFinite, segmentSeconds > 0 else { throw ClipsError.media("Invalid segment length.") }
         store = try RecordingStore(root: root, title: title)
         packageURL = store.url
         clock = SessionClock(origin: origin)
         self.segmentSeconds = segmentSeconds
         self.onFailure = onFailure
+        self.requiredTracks = requiredTracks.union([.video])
     }
 
     public static var hostTime: Double { CMClockGetTime(CMClockGetHostTimeClock()).seconds }
@@ -77,6 +79,11 @@ public final class SegmentedRecorder: @unchecked Sendable {
                     do { try self.seal(part) } catch { if self.failure == nil { self.failure = error } }
                 }
                 self.active.removeAll()
+                let present = Set(self.store.manifest.segments.map(\.kind))
+                let missing = self.requiredTracks.subtracting(present)
+                if self.failure == nil && !missing.isEmpty {
+                    self.failure = ClipsError.media("No completed media from: \(missing.map(\.rawValue).sorted().joined(separator: ", ")). The partial take was retained.")
+                }
                 do {
                     if let error = self.failure {
                         try self.store.finish(.failed, error: error.localizedDescription)

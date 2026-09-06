@@ -90,7 +90,10 @@ final class CaptureController {
             }
             let origin = SegmentedRecorder.hostTime
             clock = SessionClock(origin: origin)
-            let writer = try SegmentedRecorder(root: root, title: "Clip \(Date().formatted(date: .abbreviated, time: .shortened))", origin: origin) { [weak self] error in
+            var required: Set<TrackKind> = [.video]
+            if microphone { required.insert(.microphone) }
+            if systemAudio { required.insert(.systemAudio) }
+            let writer = try SegmentedRecorder(root: root, title: "Clip \(Date().formatted(date: .abbreviated, time: .shortened))", origin: origin, requiredTracks: required) { [weak self] error in
                 Task { @MainActor in await self?.interrupt(error) }
             }
             recorder = writer

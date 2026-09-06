@@ -5,6 +5,23 @@ import ClipsMedia
 import ClipsFixtures
 
 final class MediaTests: XCTestCase {
+    func testRequestedAudioCannotSilentlyDisappear() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let writer = try SegmentedRecorder(root: root, title: "Missing microphone", origin: 100,
+                                          requiredTracks: [.video, .microphone])
+        writer.append(try SyntheticSamples.video(frame: 0, time: 100), kind: .video)
+        do {
+            _ = try await writer.finish()
+            XCTFail("Missing requested microphone must fail")
+        } catch {
+            XCTAssertTrue(error.localizedDescription.contains("microphone"))
+        }
+        let retained = try RecordingStore(open: writer.packageURL)
+        XCTAssertEqual(retained.manifest.status, .failed)
+        XCTAssertEqual(try retained.verifiedSegments().count, 1)
+    }
+
     func testDecodedExportTrimAndFailedDestinationPreserveSource() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
