@@ -2,9 +2,14 @@
 
 **Show it. Keep it. Put it to work.**
 
-Eidos Clips is a native screen recorder prototype for clear demonstrations, walkthroughs, and call recordings. Capture your screen, camera, microphone, and system audio; review and trim the result; keep an ordinary video file; optionally hand it to a destination or agent you choose.
+[![CI](https://github.com/eidos-agi/eidos-clips/actions/workflows/native.yml/badge.svg)](https://github.com/eidos-agi/eidos-clips/actions/workflows/native.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Status: first native prototype; physical Mac validation and release signing are pending.** This repository now includes the application, core/media tests, development packaging, and a macOS CI workflow. See [implementation status](docs/IMPLEMENTATION.md) for implemented features and the remaining gates. A green synthetic test is not evidence that real screen, camera, microphone, or speaker capture works.
+Eidos Clips is a **free, MIT-licensed** native Mac screen recorder. Capture your screen, camera, microphone, and system audio; review and trim the result; keep an ordinary video file. No account, no subscription, no required backend.
+
+**Status: first native prototype.** Physical Mac validation is still pending. See [implementation status](docs/IMPLEMENTATION.md). A green synthetic test is not evidence that real screen, camera, microphone, or speaker capture works.
+
+**Next:** a compact Loom-style panel, region picker, Clips UI included in the recording, and diagnostic logs — [docs/WANT.md](docs/WANT.md).
 
 ## Build and release
 
@@ -53,13 +58,19 @@ The first supported target is **Apple Silicon macOS**, with macOS 14 as the prop
 | [Validation plan](docs/VALIDATION.md) | Failure tests, real-device scenarios, measurable targets, and evidence requirements |
 | [Agent and handoff contract](docs/INTEGRATIONS.md) | Local commands, completion events, project metadata, and destination behavior |
 | [Source review and decisions](docs/BASELINE-AND-DECISIONS.md) | Findings from Not Loom, research references, unresolved questions, and rationale |
+| [Next: compact capture](docs/WANT.md) | Include Clips in the recording, small HUD, region picker, diagnostic logs |
+| [Contributing](CONTRIBUTING.md) | Build, tests, and how to send a change |
 
 ## Delivery sequence
 
 M0 technical proof → M1 trusted recording → M2 capture experience → M3 review and clips → M4 handoff and automation → M5 signed native release. M6 adds the browser edition after the native release gate.
 
-The first usable internal build is M1. The first complete everyday workflow is M3. Public distribution requires M5; planning this product does not change repository visibility or authorize publishing recordings.
+The first usable internal build is M1. The first complete everyday workflow is M3. A notarized download still needs the signing Mac; see [LOCAL-AGENT.md](docs/LOCAL-AGENT.md).
+
+## License
+
+[MIT](LICENSE). Copyright 2026 Eidos AGI LLC. Free for anyone to use, copy, modify, and ship.
 
 ## Heritage
 
-Not Loom provides the reference implementation and product starting point. No upstream application code, artwork, or binary has been copied into this repository. Any future code reuse must retain the applicable upstream MIT copyright and license notices. Eidos Clips will have its own name, icon, bundle identifier, and release artifacts. Repository visibility and a license for new contributions remain explicit release decisions.
+Not Loom is the product reference. No upstream application code, artwork, or binary was copied. Any future code reuse must keep the applicable upstream MIT notices.
